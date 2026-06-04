@@ -1,0 +1,4 @@
+
+BLOOD_SUGAR_LOW = 70              
+BLOOD_SUGAR_NORMAL_MAX = 125       
+BLOOD_SUGAR_HIGH = 180           

@@ -1,0 +1,7 @@
+{
+    "iis.configDir": "",
+    "DockerRun.DisableDockerrc": true,
+    "DockerRun.Containers": [
+        "ec7862a3d50c"
+    ]
+}

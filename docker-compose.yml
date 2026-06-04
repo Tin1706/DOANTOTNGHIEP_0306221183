@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mysql_container:
+    image: mysql:8.0.46
+    container_name: mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootTin2341
+      MYSQL_DATABASE: diabetes_project
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootTin2341"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  fastapi_container:
+    build: ./backend_fastapi
+    container_name: fastapi_container
+    restart: always  
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend_fastapi:/app
+    environment:
+      - WATCHFILES_FORCE_POLLING=true
+    depends_on:
+      mysql_container:
+        condition: service_healthy
+
+  flutter_container:
+    build: ./doantotnghiep
+    container_name: flutter_container
+    restart: always
+    ports:
+      - "8080:80" # Đã đổi cổng ra ngoài máy thật thành 8080 ở đây!
+    volumes:
+      - ./doantotnghiep:/app
+    depends_on:
+      - fastapi_container
+
+volumes:
+  mysql_data: # Giữ nguyên như thế này để làm sạch cú pháp YAML và lưu DB an toàn
