@@ -1,14 +1,15 @@
 // profile_setup_screen.dart
+import 'package:doantotnghiep/graph/user_model.dart';
 import 'package:doantotnghiep/onboarding/onboarding_payload.dart';
 import 'package:flutter/material.dart';
 import 'symptoms_type_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
-  final int userId;
+  final UserModel user;
   final String dob;
   const ProfileSetupScreen({
-    super.key, 
-    required this.userId, 
+    super.key,
+    required this.user,
     required this.dob,
   });
 
@@ -31,18 +32,22 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     // 🌟 SỬA TẠI ĐÂY: Truyền thêm userId và dateOfBirth nhận được từ màn hình Login sang
     final payload = OnboardingPayload(
-      userId: widget.userId,       // <--- Thêm dòng này
-      dateOfBirth: widget.dob,     // <--- Thêm dòng này
+      userId: widget.user.id, // <--- Thêm dòng này
+      dateOfBirth: widget.dob, // <--- Thêm dòng này
       height: int.parse(_heightController.text),
       weight: int.parse(_weightController.text),
-      allergies: _allergyController.text.isEmpty ? null : _allergyController.text,
+      allergies:
+          _allergyController.text.isEmpty ? null : _allergyController.text,
     );
 
     // Chuyển sang màn hình tiếp theo, mang theo cục payload đầy đủ thông tin
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SymptomsTypeScreen(payload: payload, userId: widget.userId,),
+        builder: (context) => SymptomsTypeScreen(
+          payload: payload,
+          user: widget.user,
+        ),
       ),
     );
   }
@@ -52,7 +57,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF00BCEB),
       appBar: AppBar(
-        title: const Text('Khởi tạo hồ sơ', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text('Khởi tạo hồ sơ',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF00BCEB),
         elevation: 0,
         leading: const BackButton(color: Colors.black),
@@ -64,16 +70,21 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             Expanded(
               child: ListView(
                 children: [
-                  _buildTextField('Nhập chiều cao (cm)', _heightController, TextInputType.number),
-                  _buildTextField('Nhập cân nặng (kg)', _weightController, TextInputType.number),
-                  _buildTextField('Nhập dị ứng (nếu có)', _allergyController, TextInputType.text),
+                  _buildTextField('Nhập chiều cao (cm)', _heightController,
+                      TextInputType.number),
+                  _buildTextField('Nhập cân nặng (kg)', _weightController,
+                      TextInputType.number),
+                  _buildTextField('Nhập dị ứng (nếu có)', _allergyController,
+                      TextInputType.text),
                 ],
               ),
             ),
             ElevatedButton(
               onPressed: _onNext,
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00E676)),
-              child: const Text('Kế tiếp', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E676)),
+              child:
+                  const Text('Kế tiếp', style: TextStyle(color: Colors.white)),
             )
           ],
         ),
@@ -81,7 +92,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  Widget _buildTextField(String hint, TextEditingController controller, TextInputType type) {
+  Widget _buildTextField(
+      String hint, TextEditingController controller, TextInputType type) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextField(
@@ -91,7 +103,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           hintText: hint,
           filled: true,
           fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none),
         ),
       ),
     );

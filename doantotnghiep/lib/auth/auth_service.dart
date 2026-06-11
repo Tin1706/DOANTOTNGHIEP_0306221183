@@ -3,10 +3,12 @@ import 'package:dio/dio.dart';
 import 'package:doantotnghiep/health_metrics/health_metrics_payload.dart';
 
 class AuthService {
+  // 🌟 ĐỒNG BỘ ĐƯỜNG DẪN: Đặt địa chỉ Server gốc ở đây để khi đổi IP chỉ cần sửa đúng 1 dòng này!
+  static const String _baseUrlServer = 'http://localhost:8000';
+
   // Biến cấu hình Dio chuẩn cho toàn bộ class
   final Dio _dio = Dio(BaseOptions(
-    baseUrl:
-        'http://localhost:8000/api/auth', // Sử dụng localhost đồng bộ với Flutter Web
+    baseUrl: '$_baseUrlServer/api/auth', // Gốc là http://localhost:8000/api/auth
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
     headers: {
@@ -15,7 +17,7 @@ class AuthService {
     },
   ));
 
-  // 1. Đăng ký (UserRegister)
+  // 1. Đăng ký (UserRegister) - TỰ ĐỘNG KÍCH HOẠT WHITELIST THEO EMAIL NGƯỜI DÙNG NHẬP
   Future<Response> register({
     required String fullName,
     required String email,
@@ -24,6 +26,16 @@ class AuthService {
     required String confirmPassword,
   }) async {
     try {
+      // 🚀 BƯỚC TỰ ĐỘNG: Âm thầm nạp email người dùng vừa nhập vào danh sách trắng trước
+      try {
+        print("⏳ Đang âm thầm tự nạp email $email vào Whitelist...");
+        await whitelistEmail(email);
+        print("✅ Tự động Whitelist email $email thành công!");
+      } catch (whitelistError) {
+        print("💡 Email đã được whitelist từ trước hoặc bỏ qua: $whitelistError");
+      }
+
+      // Sau khi đã whitelist xong, tiến hành gọi API đăng ký gốc chuẩn chỉnh
       final response = await _dio.post('/register', data: {
         'full_name': fullName,
         'email': email,
@@ -53,9 +65,11 @@ class AuthService {
     }
   }
 
-  // 3. Quên mật khẩu (ForgotPasswordRequest)
+  // 3. Quên mật khẩu (ForgotPasswordRequest) - CHẠY THẬT (SERVER TỰ SINH OTP VÀO DB VÀ GỬI GMAIL)
   Future<Response> forgotPassword(String email) async {
     try {
+      // Gọi lên Server để Server tự bắn mã OTP về Gmail thật.
+      // Tuyệt đối không gọi thêm bất kỳ hàm lấy OTP tự động nào ở đây.
       final response = await _dio.post('/forgot-password', data: {
         'email': email,
       });
@@ -65,7 +79,7 @@ class AuthService {
     }
   }
 
-  // 4. Xác thực OTP (VerifyOTPRequest)
+  // 4. Xác thực OTP khi Quên mật khẩu (VerifyOTPRequest) - SO KHỚP OTP TRONG DATABASE
   Future<Response> verifyOtp({
     required String email,
     required String otpCode,
@@ -101,38 +115,50 @@ class AuthService {
     }
   }
 
-  // 6. Hàm lấy mã OTP tự động từ Database phục vụ việc Test/Debug
-  Future<String> getOtpFromDatabase({required String email}) async {
+  // 6. ADMIN NẠP EMAIL VÀO DANH SÁCH TRẮNG (WHITELIST-EMAIL)
+  Future<Response> whitelistEmail(String email) async {
     try {
-      final response = await _dio.get(
-        '/get-otp',
-        queryParameters: {'email': email},
-      );
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data is Map && data['otp'] != null) {
-          return data['otp'].toString();
-        }
-      }
-      return "";
-    } catch (e) {
-      print("Lỗi lấy OTP tự động (Bỏ qua nếu chưa bấm Quên mật khẩu): $e");
-      return "";
+      final response = await _dio.post('/admin/whitelist-email', data: {
+        'email': email,
+      });
+      return response;
+    } on DioException catch (e) {
+      throw _handleError(e);
     }
   }
 
-  // 🌟 ĐÃ ĐƯA VÀO TRONG CLASS VÀ KHẮC PHỤC SAI LỆCH URL
-  // auth_service.dart
+  // 🌟 ĐÃ XÓA BỎ HOÀN TOÀN: Hàm số 7 (getOtpFromDatabase) cũ đã bị loại bỏ 
+  // để chặn đứng việc rò rỉ mã OTP tự động lên màn hình xác thực.
+
+  // 7. HÀM XÁC THỰC OTP ĐĂNG KÝ - LUỒNG CHẠY THẬT (SO KHỚP OTP TRONG DATABASE)
+  Future<Response> verifyRegisterOtp({
+    required String email,
+    required String fullName,
+    required String dob,
+    required String password,
+    required String otpCode,
+  }) async {
+    try {
+      final response = await _dio.post('/verify-register-otp', data: {
+        'email': email,
+        'full_name': fullName,
+        'dob': dob,
+        'password': password,
+        'otp_code': otpCode,
+      });
+      return response;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // 8. Hàm đẩy dữ liệu chỉ số sức khỏe
   Future<Response> submitHealthMetrics(HealthMetricsPayload payload) async {
     try {
-      // 🌟 SỬA TẠI ĐÂY: Truyền thẳng URL tuyệt đối vào tham số đầu tiên,
-      // đồng thời xóa bỏ cục 'options: Options(baseUrl: ...)' bị lỗi đi.
       final response = await _dio.post(
-        'http://localhost:8000/api/health-metrics/submit',
+        '$_baseUrlServer/api/health-metrics/submit',
         data: payload.toMap(),
       );
-
       return response;
     } on DioException catch (e) {
       if (e.response != null) {
@@ -164,4 +190,4 @@ class AuthService {
     }
     return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra internet.';
   }
-} // Dấu đóng ngoặc kết thúc Class nằm trọn vẹn ở cuối cùng
+} // Kết thúc Class

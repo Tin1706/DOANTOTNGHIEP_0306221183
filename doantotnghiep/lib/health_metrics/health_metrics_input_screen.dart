@@ -7,7 +7,8 @@ class HealthMetricsInputScreen extends StatefulWidget {
   const HealthMetricsInputScreen({Key? key, this.userId = 1}) : super(key: key);
 
   @override
-  _HealthMetricsInputScreenState createState() => _HealthMetricsInputScreenState();
+  _HealthMetricsInputScreenState createState() =>
+      _HealthMetricsInputScreenState();
 }
 
 class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
@@ -72,7 +73,8 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
       String serverError = "Không thể kết nối đến máy chủ.";
       if (e is DioException && e.response != null) {
         // Đọc chi tiết lỗi nghiệp vụ thật từ FastAPI (ví dụ lỗi logic 500 hoặc validation 422)
-        serverError = e.response?.data['detail'] ?? "Lỗi xử lý dữ liệu hệ thống.";
+        serverError =
+            e.response?.data['detail'] ?? "Lỗi xử lý dữ liệu hệ thống.";
       } else {
         serverError = e.toString();
       }
@@ -100,14 +102,16 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: const Row(
             children: [
               Icon(Icons.health_and_safety, color: Colors.teal),
               SizedBox(width: 10),
-              Text("Kết quả phân tích", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text("Kết quả phân tích",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           content: Column(
@@ -136,14 +140,14 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Đóng hộp thoại kết quả
-                // Xóa trắng ô nhập liệu sau khi lưu thành công để sẵn sàng cho lần sau
-                _bloodSugarController.clear();
-                _systolicBpController.clear();
-                _diastolicBpController.clear();
-                _heartRateController.clear();
+                // 1. Dùng dialogContext để đóng CHÍNH XÁC hộp thoại Dialog này
+                Navigator.of(dialogContext).pop();
+
+                // 2. Dùng context của màn hình lớn để quay về Trang chủ
+                Navigator.of(context).pop();
               },
-              child: const Text("Xác nhận & Đóng", style: TextStyle(fontSize: 16, color: Colors.teal)),
+              child: const Text("Xác nhận & Đóng",
+                  style: TextStyle(fontSize: 16, color: Colors.teal)),
             )
           ],
         );
@@ -162,7 +166,8 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
           const SizedBox(height: 3),
           Text(
             value,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: statusColor),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 15, color: statusColor),
           ),
         ],
       ),
@@ -185,7 +190,8 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
         ),
         title: const Text(
           "Nhập chỉ số",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(
+              color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
       ),
@@ -199,7 +205,8 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
               controller: _bloodSugarController,
               hintText: "Nhập đường huyết",
               suffixText: "mg/dL",
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions()
             ),
             const SizedBox(height: 20),
             // Ô nhập Huyết áp tâm thu
@@ -226,27 +233,33 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 40),
-            
+
             // Nút bấm Xác nhận màu xanh lá cây đồng bộ layout
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _submitMetrics,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50), // Màu xanh lá cây nút xác nhận
+                  backgroundColor:
+                      const Color(0xFF4CAF50), // Màu xanh lá cây nút xác nhận
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   elevation: 2,
                 ),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 3),
                       )
                     : const Text(
                         "Xác nhận",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
                       ),
               ),
             ),
@@ -278,13 +291,17 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black),
+        style: const TextStyle(
+            fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w500),
+          hintStyle: const TextStyle(
+              color: Colors.black54, fontWeight: FontWeight.w500),
           suffixText: suffixText,
-          suffixStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          suffixStyle: const TextStyle(
+              color: Colors.black87, fontWeight: FontWeight.bold),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           border: InputBorder.none,
         ),
       ),

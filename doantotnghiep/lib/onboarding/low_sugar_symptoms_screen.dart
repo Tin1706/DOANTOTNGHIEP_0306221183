@@ -1,4 +1,5 @@
 // low_sugar_symptoms_screen.dart
+import 'package:doantotnghiep/graph/user_model.dart';
 import 'package:doantotnghiep/onboarding/onboarding_button.dart';
 import 'package:doantotnghiep/onboarding/selection_title.dart';
 import 'package:flutter/material.dart';
@@ -7,10 +8,10 @@ import 'conditions_screen.dart';
 import 'onboarding_api_services.dart';
 
 class LowSugarSymptomsScreen extends StatefulWidget {
-  final int userId;
+  final UserModel user;
   final OnboardingPayload payload;
   const LowSugarSymptomsScreen(
-      {super.key, required this.payload, required this.userId});
+      {super.key, required this.payload, required this.user});
 
   @override
   State<LowSugarSymptomsScreen> createState() => _LowSugarSymptomsScreenState();
@@ -182,7 +183,7 @@ class _LowSugarSymptomsScreenState extends State<LowSugarSymptomsScreen> {
                         // Truyền updatedPayload thay vì widget.payload cũ
                         builder: (context) => ConditionsScreen(
                           payload: updatedPayload,
-                          userId: widget.userId,
+                          user: widget.user,
                         ),
                       ),
                     );

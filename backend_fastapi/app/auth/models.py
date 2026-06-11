@@ -12,14 +12,15 @@ class UserModel(Base):
     full_name = Column(String(100), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-class OTPCodeModel(Base):
+class OTPCodeModel(Base):  # Hoặc OtpCode tùy bạn đặt tên
     __tablename__ = "otp_codes"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    # Khóa ngoại liên kết trực tiếp với id của bảng users đúng như ký hiệu MUL trong ảnh
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
     otp_code = Column(String(6), nullable=False)
-    # Khớp chuẩn kiểu tinyint trong MySQL Workbench (0: Chưa dùng, 1: Đã dùng)
-    is_used = Column(SmallInteger, default=0)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    is_used = Column(Integer, default=0)
+    created_at = Column(DateTime, nullable=False)
     expires_at = Column(DateTime, nullable=False)
+    
+    # 🌟 BẮT BUỘC PHẢI THÊM DÒNG NÀY ĐỂ SQLALCHEMY BIẾT CỘT 'type' LÀ GÌ
+    type = Column(String(50), nullable=False)

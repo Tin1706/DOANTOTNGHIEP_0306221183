@@ -1,4 +1,5 @@
 // conditions_screen.dart
+import 'package:doantotnghiep/graph/user_model.dart';
 import 'package:doantotnghiep/main_menu/main_menu_screen.dart';
 import 'package:doantotnghiep/onboarding/onboarding_button.dart';
 import 'package:doantotnghiep/onboarding/selection_title.dart';
@@ -7,10 +8,10 @@ import 'onboarding_payload.dart';
 import 'onboarding_api_services.dart';
 
 class ConditionsScreen extends StatefulWidget {
-  final int userId;
+  final UserModel user;
   final OnboardingPayload payload;
   const ConditionsScreen(
-      {super.key, required this.payload, required this.userId});
+      {super.key, required this.payload, required this.user});
 
   @override
   State<ConditionsScreen> createState() => _ConditionsScreenState();
@@ -49,10 +50,12 @@ class _ConditionsScreenState extends State<ConditionsScreen> {
 
   // Hàm xử lý gửi dữ liệu lên Backend
   void _submitData() async {
-    if (widget.payload.conditionIds == null || widget.payload.conditionIds.isEmpty) {
+    if (widget.payload.conditionIds == null ||
+        widget.payload.conditionIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng chọn ít nhất một bệnh nền trước khi hoàn thành!'),
+          content:
+              Text('Vui lòng chọn ít nhất một bệnh nền trước khi hoàn thành!'),
           backgroundColor: Colors.red, // Hiện màu đỏ cho nổi bật cảnh báo
           behavior: SnackBarBehavior.floating,
         ),
@@ -91,7 +94,10 @@ class _ConditionsScreenState extends State<ConditionsScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => MainMenuScreen(userId: widget.userId,)),
+        MaterialPageRoute(
+            builder: (context) => MainMenuScreen(
+                  user: widget.user,
+                )),
         (route) => false,
       );
     } catch (e) {

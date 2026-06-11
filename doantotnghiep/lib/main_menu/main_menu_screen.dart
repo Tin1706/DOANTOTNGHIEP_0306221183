@@ -1,9 +1,14 @@
-import 'package:doantotnghiep/health_metrics/health_metrics_input_screen.dart';
+import 'package:doantotnghiep/FoodAndExercise/health_features.dart';
+import 'package:doantotnghiep/graph/graph_screen.dart';
+import 'package:doantotnghiep/health_metrics/latest_metrics_screen.dart';
+import 'package:doantotnghiep/graph/user_model.dart'; // 🟢 Thêm import model người dùng
 import 'package:flutter/material.dart';
 
 class MainMenuScreen extends StatelessWidget {
-  final int userId;
-  const MainMenuScreen({super.key, required this.userId});
+  // 🟢 ĐỔI TẠI ĐÂY: Nhận hẳn đối tượng UserModel thay vì chỉ nhận int userId
+  final UserModel user;
+  
+  const MainMenuScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +31,9 @@ class MainMenuScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
+                        // Nếu trang LatestMetricsScreen chưa được nâng cấp, tạm thời bốc id từ thực thể user ra truyền vào
                         builder: (context) =>
-                            HealthMetricsInputScreen(userId: userId),
+                            LatestMetricsScreen(userId: user.id),
                       ),
                     );
                   },
@@ -35,7 +41,12 @@ class MainMenuScreen extends StatelessWidget {
                 MenuButton(
                   title: 'Biểu đồ thống kê',
                   onTap: () {
-                    // Logic khi ấn nút 2
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        // 🟢 ĐÃ SỬA LỖI: Truyền thực thể `user` chuẩn chỉnh vào GraphScreen
+                        builder: (context) => GraphScreen(user: user),
+                      ),
+                    );
                   },
                 ),
                 MenuButton(
@@ -53,7 +64,12 @@ class MainMenuScreen extends StatelessWidget {
                 MenuButton(
                   title: 'Quản lý thức ăn và bài thể dục',
                   onTap: () {
-                    // Logic khi ấn nút 5
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HealthFeaturesScreen(),
+                      ),
+                    );
                   },
                 ),
                 MenuButton(

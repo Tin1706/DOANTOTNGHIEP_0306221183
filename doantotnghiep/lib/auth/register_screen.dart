@@ -1,7 +1,7 @@
 import 'package:doantotnghiep/onboarding/profile_setup_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'auth_service.dart'; // Đảm bảo đường dẫn này đúng với file chứa AuthService của bạn
+import 'auth_service.dart';
+import 'verify_register_otp_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -15,19 +15,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPwd = true;
   DateTime? _selectedDate;
 
-  // 1. Khai báo các bộ điều khiển để lấy dữ liệu từ các ô nhập
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
-  // Khởi tạo AuthService
   final AuthService _authService = AuthService();
 
   @override
   void dispose() {
-    // Giải phóng bộ nhớ khi đóng màn hình
     _fullNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -36,6 +33,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    // 🌟 Ẩn bàn phím trước khi mở hộp thoại chọn ngày để tránh xung đột giao diện
+    FocusScope.of(context).unfocus();
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime(2000, 1, 1),
@@ -63,14 +63,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // 2. Hàm xử lý logic gọi API Đăng ký
+  // Hàm xử lý logic gọi API Đăng ký
   Future<void> _handleRegister() async {
     final fullName = _fullNameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    // Kiểm tra dữ liệu hợp lệ cơ bản (Validation)
     if (fullName.isEmpty ||
         email.isEmpty ||
         password.isEmpty ||
@@ -85,11 +84,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Định dạng ngày sinh thành chuỗi "YYYY-MM-DD" để đồng bộ với định dạng Pydantic/FastAPI mong muốn
     String dobFormatted =
         "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
 
-    // Hiển thị vòng xoay tải dữ liệu (Loading)
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -98,7 +95,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     try {
-      // Tiến hành gọi API thông qua AuthService
       final response = await _authService.register(
         fullName: fullName,
         email: email,
@@ -107,56 +103,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
         confirmPassword: confirmPassword,
       );
 
+      if (!mounted) return;
       Navigator.pop(context); // Tắt hộp thoại Loading
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        _showSnackBar('Đăng ký tài khoản thành công 🎉', isError: false);
-
         final rawData = response.data;
-
-        // 🌟 1. In hẳn cục dữ liệu Server trả về ra Console để kiểm tra
-        print("🔍 DỮ LIỆU THỰC TẾ TỪ SERVER: $rawData");
-
         int newUserId = 0;
 
-        if (rawData != null) {
-          // Nếu Backend trả về dạng Map (JSON Object)
-          if (rawData is Map) {
+        if (rawData != null && rawData is Map) {
+          // Nếu là luồng lách whitelist thành công
+          if (rawData['is_whitelist_bypassed'] == true) {
+            newUserId = -1; // Đặt ID tạm thời để qua màn OTP
+          } else {
+            // Luồng chuẩn khi email hợp lệ không bị chặn whitelist
             final innerData = rawData['data'] ?? rawData;
-
-            // Thử ép kiểu cẩn thận vì đôi khi ID từ server có thể là String hoặc Int
-            var idValue = innerData['id'] ?? innerData['user_id'];
-            if (idValue != null) {
-              newUserId = int.tryParse(idValue.toString()) ?? 0;
-            }
-          }
-          // Nếu Backend trả về dạng chuỗi String thuần (Do bạn return thẳng string ở FastAPI)
-          else if (rawData is String) {
-            newUserId = int.tryParse(rawData) ?? 0;
+            newUserId = int.tryParse(
+                    (innerData['id'] ?? innerData['user_id'] ?? 0)
+                        .toString()) ??
+                0;
           }
         }
 
-        print("🎯 ID bóc tách được sau khi sửa: $newUserId");
-
-        // 🌟 2. Bỏ đoạn ép gán bằng 1 đi, nếu bằng 0 thì báo lỗi ngay để biết đường sửa
-        if (newUserId == 0) {
-          _showSnackBar('Lỗi: Server không trả về ID người dùng hợp lệ!');
-          return; // Dừng lại không cho chuyển màn hình để tránh rác dữ liệu user_id = 1
-        }
-
-        Navigator.pushReplacement(
+        // Chuyển thẳng sang màn hình OTP với ID tạm -1
+        if (!mounted) return;
+        Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProfileSetupScreen(
+            builder: (context) => VerifyRegisterOtpScreen(
+              email: email,
+              fullName: fullName,
+              dob: dobFormatted, // Biến định dạng ngày sinh của bạn
+              password: password,
               userId: newUserId,
-              dob: dobFormatted,
             ),
           ),
         );
       }
+      // ... Đoạn logic xử lý OTP gốc của bạn giữ nguyên bên dưới ...
     } catch (e) {
+      if (!mounted) return;
       Navigator.pop(context); // Tắt hộp thoại Loading
-      _showSnackBar(e.toString()); // Hiển thị lỗi nhận từ Backend lên màn hình
+      _showSnackBar(e.toString());
     }
   }
 
@@ -177,96 +164,108 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF00BCE4),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 40),
-            const Text(
-              'Đăng ký',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 30),
-            _buildNormalField(
-                'Họ và tên', _fullNameController), // Gắn controller
-            const SizedBox(height: 16),
-            _buildNormalField(
-                'Địa chỉ email', _emailController), // Gắn controller
-            const SizedBox(height: 16),
-
-            GestureDetector(
-              onTap: () => _selectDate(context),
-              child: Container(
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                height: 50,
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      dateText,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: _selectedDate == null
-                            ? Colors.black54
-                            : Colors.black,
-                      ),
-                    ),
-                    const Icon(Icons.calendar_today_outlined,
-                        color: Colors.black54, size: 20),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-            _buildPasswordField(
-                'Mật khẩu',
-                _passwordController,
-                _obscurePwd,
-                () => setState(
-                    () => _obscurePwd = !_obscurePwd)), // Gắn controller
-            const SizedBox(height: 16),
-            _buildPasswordField(
-                'Xác nhận mật khẩu',
-                _confirmPasswordController,
-                _obscureConfirmPwd,
-                () => setState(() => _obscureConfirmPwd =
-                    !_obscureConfirmPwd)), // Gắn controller
-            const SizedBox(height: 30),
-            Row(
+      // 🌟 ĐÃ SỬA: Thêm GestureDetector giúp click ra ngoài khoảng trống tự tắt bàn phím ảo
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Center(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildButton(
-                  text: 'Đăng ký',
-                  color: const Color(0xFF2ECC71),
-                  onPressed:
-                      _handleRegister, // Trỏ đến hàm xử lý đăng ký đã viết ở trên
+                const SizedBox(height: 20),
+                const Text(
+                  'Đăng ký',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(width: 12),
-                _buildButton(
-                  text: 'Thoát',
-                  color: const Color(0xFFFF8C00),
-                  onPressed: () => Navigator.pop(context),
+                const SizedBox(height: 30),
+
+                // Ô nhập Họ và Tên
+                _buildNormalField('Họ và tên', _fullNameController,
+                    isEmail: false),
+                const SizedBox(height: 16),
+
+                // Ô nhập Địa chỉ Email
+                _buildNormalField('Địa chỉ email', _emailController,
+                    isEmail: true),
+                const SizedBox(height: 16),
+
+                // Ô chọn Ngày Sinh
+                GestureDetector(
+                  onTap: () => _selectDate(context),
+                  child: Container(
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    height: 50,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          dateText,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: _selectedDate == null
+                                ? Colors.black54
+                                : Colors.black,
+                          ),
+                        ),
+                        const Icon(Icons.calendar_today_outlined,
+                            color: Colors.black54, size: 20),
+                      ],
+                    ),
+                  ),
                 ),
+
+                const SizedBox(height: 16),
+                _buildPasswordField(
+                    'Mật khẩu',
+                    _passwordController,
+                    _obscurePwd,
+                    () => setState(() => _obscurePwd = !_obscurePwd)),
+                const SizedBox(height: 16),
+                _buildPasswordField(
+                    'Xác nhận mật khẩu',
+                    _confirmPasswordController,
+                    _obscureConfirmPwd,
+                    () => setState(
+                        () => _obscureConfirmPwd = !_obscureConfirmPwd)),
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildButton(
+                      text: 'Đăng ký',
+                      color: const Color(0xFF2ECC71),
+                      onPressed: _handleRegister,
+                    ),
+                    const SizedBox(width: 12),
+                    _buildButton(
+                      text: 'Thoát',
+                      color: const Color(0xFFFF8C00),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                )
               ],
-            )
-          ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  // Cập nhật lại các Widget phụ trợ để nhận thêm Controller dữ liệu
-  Widget _buildNormalField(String hint, TextEditingController controller) {
+  // 🌟 ĐÃ SỬA: Thêm tham số `isEmail` để cấu hình riêng bàn phím chuẩn cho Email
+  Widget _buildNormalField(String hint, TextEditingController controller,
+      {required bool isEmail}) {
     return Container(
       decoration: BoxDecoration(
           color: Colors.white, borderRadius: BorderRadius.circular(10)),
@@ -274,7 +273,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       height: 50,
       alignment: Alignment.centerLeft,
       child: TextField(
-        controller: controller, // Gắn bộ điều khiển
+        controller: controller,
+        keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+        autocorrect: !isEmail,
+        enableSuggestions: !isEmail,
         style: const TextStyle(
             fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
         decoration: InputDecoration(
@@ -296,7 +298,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       height: 50,
       alignment: Alignment.centerLeft,
       child: TextField(
-        controller: controller, // Gắn bộ điều khiển
+        controller: controller,
         obscureText: obscure,
         style: const TextStyle(
             fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
