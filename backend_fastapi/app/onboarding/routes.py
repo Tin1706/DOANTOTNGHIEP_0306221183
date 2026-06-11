@@ -21,7 +21,7 @@ def submit_onboarding(payload: OnboardingInput, db: Session = Depends(get_db)):
             message="Khởi tạo hồ sơ bệnh nhân thành công!",
             data={
                 "patient_profile_id": profile_id,
-                "age": patient_age,
+                "Age": patient_age,
                 "bmi": patient_bmi
             }
         )

@@ -73,7 +73,7 @@ def process_patient_onboarding(db: Session, payload: OnboardingInput):
             )
             db.add(patient_symptom)
 
-    db.commit()
+    db.flush()
     return profile.id, calculated_age, calculated_bmi
 
 

@@ -18,7 +18,7 @@ class OnboardingInput(BaseModel):
 
 class OnboardingResponse(BaseModel):
     patient_profile_id: int
-    age: int
+    Age: int
     bmi: float  # Xuất chỉ số BMI tính toán từ weight và height
 
 class ApiResponseOnboarding(BaseModel):
