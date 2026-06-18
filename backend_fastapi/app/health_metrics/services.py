@@ -4,7 +4,9 @@ from datetime import datetime, timedelta, timezone
 from typing import List
 from . import models
 from .schemas import HealthMetricsInput, HealthMetricsResponse, MetricChartPoint
-
+from datetime import datetime, timedelta
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 # Khai báo múi giờ Việt Nam toàn cục
 vnam_tz = timezone(timedelta(hours=7))
 
@@ -115,9 +117,6 @@ def get_latest_metrics(db: Session, user_id: int, limit: int = 7): # Đặt mặ
     # 3. Đảo ngược chuỗi để dữ liệu chạy từ Cũ đến Mới khi vẽ lên biểu đồ Flutter
     chart_data.reverse()
     return chart_data
-from datetime import datetime, timedelta
-from sqlalchemy import func
-from sqlalchemy.orm import Session
 
 def calculate_average_metrics(db: Session, user_id: int, limit: int = None):
     """Hàm tính trung bình các chỉ số. Nếu limit=None thì mặc định lấy tất cả dữ liệu"""

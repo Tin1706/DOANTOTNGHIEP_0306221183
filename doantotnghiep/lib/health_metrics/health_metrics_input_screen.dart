@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:audioplayers/audioplayers.dart'; // 🟢 1. THÊM THƯ VIỆN ĐỂ PHÁT CHUÔNG BÁO ĐỘNG
 
 class HealthMetricsInputScreen extends StatefulWidget {
   final int userId; // Nhận userId từ màn hình Đăng nhập truyền sang
@@ -21,7 +22,64 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
   final Dio _dio = Dio();
   bool _isLoading = false;
 
-  // 2. Logic xử lý gửi dữ liệu lên Python Backend khi bấm nút
+  // 🟢 2. KHỞI TẠO PLAYER ĐỂ ĐIỀU KHIỂN ÂM THANH BÁO ĐỘNG
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  // 🟢 3. HÀM TẠO HỘP THOẠI CẢNH BÁO NGUY HIỂM (MÀU ĐỎ) + TẮT CHUÔNG
+  void _showDangerAlertDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible:
+          false, // Bắt buộc người dùng bấm nút mới được tắt chuông
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.red, size: 32),
+              SizedBox(width: 10),
+              Text(
+                "🚨 NGUY HIỂM KHẨN CẤP",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                    fontSize: 18),
+              ),
+            ],
+          ),
+          content: Text(
+            "$message\nVui lòng chú ý điều chỉnh chế độ ăn uống/tiêm thuốc hoặc liên hệ bác sĩ ngay lập tức nếu cơ thể mệt mỏi!",
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                await _audioPlayer.stop(); // 🟢 TẮT TIẾNG CHUÔNG BÁO THỨC NGAY
+                if (mounted) {
+                  Navigator.of(dialogContext)
+                      .pop(); // Đóng AlertDialog cảnh báo đỏ
+                  Navigator.of(context).pop(); // Quay về trang trước đó
+                }
+              },
+              child: const Text(
+                "Tôi đã hiểu & Tắt báo động",
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            )
+          ],
+        );
+      },
+    );
+  }
+
+  // 4. Logic xử lý gửi dữ liệu lên Python Backend khi bấm nút
   Future<void> _submitMetrics() async {
     // Kiểm tra tính hợp lệ dữ liệu cơ bản trước khi gọi API
     if (_bloodSugarController.text.isEmpty ||
@@ -41,14 +99,17 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
       _isLoading = true;
     });
 
+    final double bloodSugar =
+        double.tryParse(_bloodSugarController.text) ?? 0.0;
+
     try {
-      // Địa chỉ API submit cục bộ (Chỉnh lại cổng port nếu bạn cấu hình khác)
+      // Địa chỉ API submit cục bộ (Chỉnh lại nếu dùng IP tĩnh hoặc máy ảo 10.0.2.2)
       final String apiUrl = "http://127.0.0.1:8000/api/health-metrics/submit";
 
       // Tạo cấu trúc JSON Payload đồng bộ 100% với Pydantic Schema ở Python
       final Map<String, dynamic> payload = {
         "user_id": widget.userId,
-        "blood_sugar": double.tryParse(_bloodSugarController.text) ?? 0.0,
+        "blood_sugar": bloodSugar,
         "unit": "mg/dL",
         "systolic_bp": int.tryParse(_systolicBpController.text) ?? 0,
         "diastolic_bp": int.tryParse(_diastolicBpController.text) ?? 0,
@@ -58,21 +119,40 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
       final response = await _dio.post(apiUrl, data: payload);
 
       if (response.statusCode == 201 && response.data['success'] == true) {
-        // Trích xuất dữ liệu phân tích sức khỏe mà Python vừa trả về
         final evaluation = response.data['data'];
 
-        // Gọi hàm hiển thị Dialog thông báo kết quả chi tiết
-        _showResultDialog(
-          sugarStatus: evaluation['blood_sugar_status'],
-          sugarWarn: evaluation['blood_sugar_warning'],
-          bpWarn: evaluation['blood_pressure_warning'],
-          hrWarn: evaluation['heart_rate_warning'],
-        );
+        // 🟢 4. KIỂM TRA ĐIỀU KIỆN ĐƯỜNG HUYẾT ĐỂ NỔ CHUÔNG + DIALOG NGUY HIỂM ĐỎ
+        if (bloodSugar > 180 || bloodSugar < 70) {
+          String alertMsg = bloodSugar > 180
+              ? "Chỉ số đường huyết vừa nhập là ${bloodSugar} mg/dL. Bạn đang bị TĂNG ĐƯỜNG HUYẾT vượt ngưỡng an toàn!"
+              : "Chỉ số đường huyết vừa nhập là ${bloodSugar} mg/dL. Bạn đang bị HẠ ĐƯỜNG HUYẾT cực kỳ nguy hiểm!";
+
+          try {
+            await _audioPlayer
+                .setReleaseMode(ReleaseMode.loop); // Bật lặp vô hạn
+            await _audioPlayer.play(
+                AssetSource('chuong_bao_thuc.mp3')); // Gáy nhạc chuông lên
+          } catch (e) {
+            print("Không thể phát chuông báo động: $e");
+          }
+
+          // Nổ hộp thoại nguy hiểm màu đỏ
+          if (mounted) _showDangerAlertDialog(alertMsg);
+        } else {
+          // Ngược lại, nếu đường huyết bình thường -> Hiện Dialog kết quả teal truyền thống của bạn
+          if (mounted) {
+            _showResultDialog(
+              sugarStatus: evaluation['blood_sugar_status'],
+              sugarWarn: evaluation['blood_sugar_warning'],
+              bpWarn: evaluation['blood_pressure_warning'],
+              hrWarn: evaluation['heart_rate_warning'],
+            );
+          }
+        }
       }
     } catch (e) {
       String serverError = "Không thể kết nối đến máy chủ.";
       if (e is DioException && e.response != null) {
-        // Đọc chi tiết lỗi nghiệp vụ thật từ FastAPI (ví dụ lỗi logic 500 hoặc validation 422)
         serverError =
             e.response?.data['detail'] ?? "Lỗi xử lý dữ liệu hệ thống.";
       } else {
@@ -86,13 +166,15 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  // 3. Hàm tạo hộp thoại hiển thị dòng Cảnh báo Y Tế lấy từ Python
+  // 5. Hàm tạo hộp thoại hiển thị dòng Kết quả sức khỏe thông thường
   void _showResultDialog({
     required String sugarStatus,
     required String sugarWarn,
@@ -140,10 +222,7 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                // 1. Dùng dialogContext để đóng CHÍNH XÁC hộp thoại Dialog này
                 Navigator.of(dialogContext).pop();
-
-                // 2. Dùng context của màn hình lớn để quay về Trang chủ
                 Navigator.of(context).pop();
               },
               child: const Text("Xác nhận & Đóng",
@@ -155,7 +234,6 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
     );
   }
 
-  // Hàm bổ trợ thiết kế dòng kết quả phân tích trong Dialog
   Widget _buildResultRow(String title, String value, Color statusColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -174,10 +252,9 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
     );
   }
 
-  // 4. Giao diện thiết kế theo chuẩn bản phối Figma màu xanh Cyan của bạn
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Color(0xFF00BCD4); // Màu nền xanh Cyan chủ đạo
+    const Color primaryColor = Color(0xFF00BCD4);
 
     return Scaffold(
       backgroundColor: primaryColor,
@@ -200,16 +277,12 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
         child: Column(
           children: [
             const SizedBox(height: 10),
-            // Ô nhập chỉ số Đường huyết
             _buildInputField(
-              controller: _bloodSugarController,
-              hintText: "Nhập đường huyết",
-              suffixText: "mg/dL",
-              keyboardType:
-                  const TextInputType.numberWithOptions()
-            ),
+                controller: _bloodSugarController,
+                hintText: "Nhập đường huyết",
+                suffixText: "mg/dL",
+                keyboardType: const TextInputType.numberWithOptions()),
             const SizedBox(height: 20),
-            // Ô nhập Huyết áp tâm thu
             _buildInputField(
               controller: _systolicBpController,
               hintText: "Nhập huyết áp tâm thu:",
@@ -217,7 +290,6 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 20),
-            // Ô nhập Huyết áp tâm trương
             _buildInputField(
               controller: _diastolicBpController,
               hintText: "Nhập huyết áp tâm trương:",
@@ -225,7 +297,6 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 20),
-            // Ô nhập Nhịp tim
             _buildInputField(
               controller: _heartRateController,
               hintText: "Nhập nhịp tim",
@@ -233,15 +304,12 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 40),
-
-            // Nút bấm Xác nhận màu xanh lá cây đồng bộ layout
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _submitMetrics,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      const Color(0xFF4CAF50), // Màu xanh lá cây nút xác nhận
+                  backgroundColor: const Color(0xFF4CAF50),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
@@ -269,7 +337,6 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
     );
   }
 
-  // Khung thiết kế ô TextField bo tròn nền trắng chuẩn UI Figma
   Widget _buildInputField({
     required TextEditingController controller,
     required String hintText,
@@ -310,6 +377,7 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
 
   @override
   void dispose() {
+    _audioPlayer.dispose(); // 🟢 GIẢI PHÓNG AUDIO PLAYER KHI THOÁT TRANG
     _bloodSugarController.dispose();
     _systolicBpController.dispose();
     _diastolicBpController.dispose();

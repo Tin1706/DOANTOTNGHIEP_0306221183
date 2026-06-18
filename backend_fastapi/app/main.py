@@ -9,6 +9,7 @@ from app.health_metrics.routes import router as health_metrics_router
 from app.food.routes import food_router_unique
 from app.exercise.routes import exercise_router_unique
 from app.reminder.routes import router as reminder_router
+from app.user_info.routes import router as user_info_router
 
 app = FastAPI()
 
@@ -31,6 +32,7 @@ app.include_router(health_metrics_router)
 app.include_router(food_router_unique)
 app.include_router(exercise_router_unique)
 app.include_router(reminder_router)
+app.include_router(user_info_router)
 
 @app.get("/")
 def read_root():

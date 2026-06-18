@@ -1,29 +1,28 @@
 import 'package:doantotnghiep/FoodAndExercise/health_features.dart';
 import 'package:doantotnghiep/graph/graph_screen.dart';
 import 'package:doantotnghiep/health_metrics/latest_metrics_screen.dart';
-import 'package:doantotnghiep/graph/user_model.dart'; // 🟢 Thêm import model người dùng
+import 'package:doantotnghiep/graph/user_model.dart'; 
+import 'package:doantotnghiep/main_menu/patient_info_screen.dart';
+import 'package:doantotnghiep/reminder/reminder_list_page.dart';
 import 'package:flutter/material.dart';
 
 class MainMenuScreen extends StatelessWidget {
-  // 🟢 ĐỔI TẠI ĐÂY: Nhận hẳn đối tượng UserModel thay vì chỉ nhận int userId
   final UserModel user;
   
   const MainMenuScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
-    // Lấy màu nền xanh Cyan giống trong thiết kế của bạn
     const backgroundColor = Color(0xFF00BCEB);
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
         child: Padding(
-          // Khoảng cách thụt lề hai bên cho toàn bộ menu
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: Center(
             child: ListView(
-              shrinkWrap: true, // Thụt gọn danh sách theo nội dung bên trong
+              shrinkWrap: true, 
               children: [
                 MenuButton(
                   title: 'Quản lý chỉ số sức khoẻ',
@@ -31,9 +30,7 @@ class MainMenuScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        // Nếu trang LatestMetricsScreen chưa được nâng cấp, tạm thời bốc id từ thực thể user ra truyền vào
-                        builder: (context) =>
-                            LatestMetricsScreen(userId: user.id),
+                        builder: (context) => LatestMetricsScreen(userId: user.id),
                       ),
                     );
                   },
@@ -43,7 +40,6 @@ class MainMenuScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        // 🟢 ĐÃ SỬA LỖI: Truyền thực thể `user` chuẩn chỉnh vào GraphScreen
                         builder: (context) => GraphScreen(user: user),
                       ),
                     );
@@ -52,7 +48,13 @@ class MainMenuScreen extends StatelessWidget {
                 MenuButton(
                   title: 'Nhắc nhở',
                   onTap: () {
-                    // Logic khi ấn nút 3
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        // 🟢 ĐÃ FIX LỖI DÒNG 54: Bỏ const và truyền 'user' vào chuẩn bài
+                        builder: (context) => ReminderListPage(user: user),
+                      ),
+                    );
                   },
                 ),
                 MenuButton(
@@ -75,7 +77,12 @@ class MainMenuScreen extends StatelessWidget {
                 MenuButton(
                   title: 'Quản lý tài khoản và sức khoẻ cá nhân',
                   onTap: () {
-                    // Logic khi ấn nút 6
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PatientInfoScreen(user: user),
+                      ),
+                    );
                   },
                 ),
               ],
@@ -87,7 +94,6 @@ class MainMenuScreen extends StatelessWidget {
   }
 }
 
-// 🌟 Widget dùng chung cho các nút Menu để tránh lặp lại code
 class MenuButton extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
@@ -101,19 +107,18 @@ class MenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // Khoảng cách dòng giữa các nút (Spacing)
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: SizedBox(
-        width: double.infinity, // Giúp nút kéo giãn hết chiều ngang màn hình
-        height: 60, // Chiều cao của mỗi nút bấm
+        width: double.infinity, 
+        height: 60, 
         child: ElevatedButton(
           onPressed: onTap,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white, // Màu nền trắng của nút
-            foregroundColor: Colors.black, // Màu khi bấm vào nút
-            elevation: 0, // Độ đổ bóng (bằng 0 để phẳng giống Figma)
+            backgroundColor: Colors.white, 
+            foregroundColor: Colors.black, 
+            elevation: 0, 
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12), // Bo góc giống thiết kế
+              borderRadius: BorderRadius.circular(12), 
             ),
           ),
           child: Text(
@@ -121,7 +126,7 @@ class MenuButton extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.bold, // Chữ in đậm
+              fontWeight: FontWeight.bold, 
               color: Colors.black,
             ),
           ),

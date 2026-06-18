@@ -10,8 +10,9 @@ import 'onboarding_api_services.dart';
 class LowSugarSymptomsScreen extends StatefulWidget {
   final UserModel user;
   final OnboardingPayload payload;
+  final bool isFromUpdate;
   const LowSugarSymptomsScreen(
-      {super.key, required this.payload, required this.user});
+      {super.key, required this.payload, required this.user, this.isFromUpdate = false});
 
   @override
   State<LowSugarSymptomsScreen> createState() => _LowSugarSymptomsScreenState();
@@ -27,6 +28,33 @@ class _LowSugarSymptomsScreenState extends State<LowSugarSymptomsScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // 🌟 TỰ ĐỘNG ĐỒNG BỘ TRIỆU CHỨNG CŨ NẾU LÀ LUỒNG UPDATE MÀ PAYLOAD ĐANG TRỐNG
+    if (widget.isFromUpdate && widget.payload.symptomIds.isEmpty) {
+      try {
+        // Trích xuất danh sách triệu chứng từ biến symptoms của UserModel
+        final dynamic userSymptoms = (widget.user as dynamic).symptoms;
+        if (userSymptoms != null && userSymptoms is List) {
+          for (var item in userSymptoms) {
+            if (item is Map) {
+              final id = item['id'];
+              // Chỉ nạp các ID thuộc dải Hạ đường huyết (1 đến 5) vào màn hình này
+              if (id != null && id >= 1 && id <= 5) {
+                widget.payload.symptomIds.add(id as int);
+              }
+            } else {
+              final id = (item as dynamic).id;
+              if (id != null && id >= 1 && id <= 5) {
+                widget.payload.symptomIds.add(id as int);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print("Không thể tự động trích xuất ID triệu chứng hạ đường huyết cũ: $e");
+      }
+    }
+
     _fetchSymptomsFromServer();
   }
 
@@ -98,12 +126,12 @@ class _LowSugarSymptomsScreenState extends State<LowSugarSymptomsScreen> {
                               final symptom = _filteredSymptoms[index];
                               final int symptomId = symptom['id'];
 
-                              // 🌟 FIX LỖI CRASH NULL: Tự động quét tìm đúng cột tên trong DB của bạn
                               final String symptomName = symptom['name'] ??
                                   symptom['symptom_name'] ??
                                   symptom['symptomName'] ??
                                   'Triệu chứng không rõ tên';
 
+                              // Trạng thái hiển thị Checkbox dựa vào danh sách ID trong payload
                               final isSelected =
                                   widget.payload.symptomIds.contains(symptomId);
 
@@ -151,17 +179,16 @@ class _LowSugarSymptomsScreenState extends State<LowSugarSymptomsScreen> {
                           ),
               ),
 
-              // low_sugar_symptoms_screen.dart
+              // Nút bấm tích hợp linh hoạt cả 2 luồng độc lập
               Align(
                 alignment: Alignment.center,
                 child: OnboardingButton(
-                  text: 'Kế tiếp',
+                  text: widget.isFromUpdate ? 'Xác nhận chọn' : 'Kế tiếp',
                   onPressed: () {
                     final hasLowSugarSymptom = widget.payload.symptomIds
                         .any((id) => id >= 1 && id <= 5);
 
                     if (!hasLowSugarSymptom) {
-                      // Nếu chưa tích cái nào thuộc dải ID này, quăng SnackBar báo lỗi màu đỏ và ngắt tiến trình
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
@@ -170,23 +197,39 @@ class _LowSugarSymptomsScreenState extends State<LowSugarSymptomsScreen> {
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
-                      return; // 🛑 Dừng tại đây, không cho phép Navigator chuyển màn
+                      return; 
                     }
-                    // 🌟 Đóng gói lại payload bằng copyWith để ép duy trì userId chuẩn chỉnh
-                    final updatedPayload = widget.payload.copyWith(
-                      symptomIds: widget.payload.symptomIds,
-                    );
 
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        // Truyền updatedPayload thay vì widget.payload cũ
-                        builder: (context) => ConditionsScreen(
-                          payload: updatedPayload,
-                          user: widget.user,
+                    if (widget.isFromUpdate) {
+                      // 1. LUỒNG CẬP NHẬT: Duyệt lấy danh sách TÊN các triệu chứng đã được chọn
+                      List<String> selectedNames = [];
+                      for (var symptom in _filteredSymptoms) {
+                        final int symptomId = symptom['id'];
+                        if (widget.payload.symptomIds.contains(symptomId)) {
+                          final String symptomName = symptom['name'] ??
+                              symptom['symptom_name'] ??
+                              symptom['symptomName'] ??
+                              'Triệu chứng';
+                          selectedNames.add(symptomName);
+                        }
+                      }
+                      Navigator.pop(context, selectedNames);
+                    } else {
+                      // 2. LUỒNG ONBOARDING GỐC
+                      final updatedPayload = widget.payload.copyWith(
+                        symptomIds: widget.payload.symptomIds,
+                      );
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ConditionsScreen(
+                            payload: updatedPayload,
+                            user: widget.user,
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    }
                   },
                 ),
               ),

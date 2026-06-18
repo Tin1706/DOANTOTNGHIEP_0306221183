@@ -5,10 +5,9 @@ import 'package:dio/dio.dart';
 
 class BloodSugarGraphScreen extends StatefulWidget {
   // 🟢 ĐỔI TẠI ĐÂY: Nhận hẳn đối tượng UserModel truyền vào
-  final UserModel user; 
+  final UserModel user;
 
-  const BloodSugarGraphScreen({Key? key, required this.user})
-      : super(key: key);
+  const BloodSugarGraphScreen({Key? key, required this.user}) : super(key: key);
 
   @override
   State<BloodSugarGraphScreen> createState() => _BloodSugarGraphScreenState();
@@ -17,7 +16,7 @@ class BloodSugarGraphScreen extends StatefulWidget {
 class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
   final Dio _dio = Dio();
   List<FlSpot> _spots = [];
-  List<String> _dateTimeLabels = []; 
+  List<String> _dateTimeLabels = [];
   bool _isLoading = true;
   String? _error;
 
@@ -31,7 +30,7 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
     try {
       // 🟢 Bốc ID trực tiếp từ đối tượng user được truyền vào để gọi API đồ thị
       print("======> THỰC TẾ FLUTTER GỬI USER ID LÀ: ${widget.user.id}");
-      
+
       final response = await _dio.get(
         "http://localhost:8000/api/health-metrics/latest",
         queryParameters: {
@@ -46,7 +45,7 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
 
         setState(() {
           _spots = [];
-          _dateTimeLabels = []; 
+          _dateTimeLabels = [];
 
           for (int i = 0; i < chartList.length; i++) {
             var item = chartList[i];
@@ -76,12 +75,14 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
         backgroundColor: primaryColor,
         elevation: 0,
         leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 22),
+            icon:
+                const Icon(Icons.arrow_back_ios, color: Colors.black, size: 22),
             onPressed: () => Navigator.of(context).pop()),
         // 🟢 Lấy trực tiếp tên từ widget.user.name hiển thị lên AppBar
         title: Text(
           "Đường huyết của ${widget.user.name}",
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -102,7 +103,8 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
+                          padding:
+                              const EdgeInsets.only(bottom: 12.0, left: 4.0),
                           child: Text(
                             "Bệnh nhân: ${widget.user.name}",
                             style: const TextStyle(
@@ -113,8 +115,8 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
                         ),
                       ),
                       Expanded(
-                        child: _buildChartContainer(
-                            "Đường huyết (mg/dL)", _spots, Colors.orange, 50, 210),
+                        child: _buildChartContainer("Đường huyết (mg/dL)",
+                            _spots, Colors.orange, 50, 210),
                       ),
                     ],
                   ),
@@ -133,13 +135,15 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
           SizedBox(
             height: 250,
             child: spots.isEmpty
                 ? const Center(
-                    child: Text("Không có dữ liệu đo trong khoảng thời gian này"))
+                    child:
+                        Text("Không có dữ liệu đo trong khoảng thời gian này"))
                 : LineChart(LineChartData(
                     minX: 0,
                     maxX: spots.length > 1 ? (spots.length - 1).toDouble() : 6,
@@ -151,6 +155,63 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
                         getDrawingHorizontalLine: (value) => FlLine(
                             color: Colors.grey.shade200, strokeWidth: 1)),
                     borderData: FlBorderData(show: false),
+
+                    // 🔴 THÊM ĐOẠN NÀY ĐỂ HIGHLIGHT VÙNG AN TOÀN (70 - 125)
+                    extraLinesData: ExtraLinesData(
+                      horizontalLines: [
+                        // 🩸 ĐƯỜNG CHẶN TRÊN (125 mg/dL)
+                        HorizontalLine(
+                          y: 125,
+                          color: Colors.green.withOpacity(0.4),
+                          strokeWidth: 1.5,
+                          dashArray: [5, 5], // Tạo nét đứt thanh lịch
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.topRight,
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => "Tối đa: 125",
+                          ),
+                        ),
+                        // 🩸 ĐƯỜNG CHẶN DƯỚI (70 mg/dL)
+                        HorizontalLine(
+                          y: 70,
+                          color: Colors.green.withOpacity(0.4),
+                          strokeWidth: 1.5,
+                          dashArray: [5, 5],
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.topRight,
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => "Tối thiểu: 70",
+                          ),
+                        ),
+                        // 🩸 VÙNG HIGHLIGHT NẰM GIỮA (70 - 125)
+                        HorizontalLine(
+                          y: 97.5, // (125 + 70) / 2
+                          strokeWidth:
+                              50, // Độ dày lõi trong dải màu xanh để bao trọn từ 70 đến 125
+                          color: Colors.green.withOpacity(0.12),
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.centerLeft,
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => " VÙNG AN TOÀN",
+                          ),
+                        ),
+                      ],
+                    ),
                     titlesData: FlTitlesData(
                       show: true,
                       rightTitles: const AxisTitles(
@@ -164,7 +225,8 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
                               getTitlesWidget: (v, m) {
                                 int index = v.toInt();
                                 String text = "";
-                                if (index >= 0 && index < _dateTimeLabels.length) {
+                                if (index >= 0 &&
+                                    index < _dateTimeLabels.length) {
                                   text = _dateTimeLabels[index];
                                 }
                                 return Padding(

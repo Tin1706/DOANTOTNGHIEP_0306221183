@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
+from typing import Optional
+from fastapi import Query, Depends, HTTPException, status
 
 # 🟢 GIẢI QUYẾT TRÙNG TÊN: 
 # Chỉ giữ lại ApiResponse từ globalSchemas nếu nó là schema chung cho toàn dự án
@@ -62,8 +64,6 @@ def get_latest_metrics(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"Lỗi hệ thống khi lấy dữ liệu: {str(e)}"
         )
-from typing import Optional
-from fastapi import Query, Depends, HTTPException, status
 # ... các import khác của bạn ...
 
 @router.get(

@@ -10,8 +10,12 @@ import 'onboarding_api_services.dart';
 class ConditionsScreen extends StatefulWidget {
   final UserModel user;
   final OnboardingPayload payload;
+  final bool isFromUpdate;
   const ConditionsScreen(
-      {super.key, required this.payload, required this.user});
+      {super.key,
+      required this.payload,
+      required this.user,
+      this.isFromUpdate = false});
 
   @override
   State<ConditionsScreen> createState() => _ConditionsScreenState();
@@ -48,7 +52,7 @@ class _ConditionsScreenState extends State<ConditionsScreen> {
     }
   }
 
-  // Hàm xử lý gửi dữ liệu lên Backend
+  // Hàm xử lý gửi dữ liệu lên Backend (Chỉ dành cho Luồng Đăng ký gốc)
   void _submitData() async {
     if (widget.payload.conditionIds == null ||
         widget.payload.conditionIds.isEmpty) {
@@ -168,6 +172,7 @@ class _ConditionsScreenState extends State<ConditionsScreen> {
                                   condition['conditionName'] ??
                                   'Bệnh nền không rõ tên';
 
+                              // Trạng thái Checked: Nếu id nằm trong mảng payload truyền sang, ô sẽ tự động chọn sẵn!
                               final isSelected = widget.payload.conditionIds
                                   .contains(conditionId);
 
@@ -227,10 +232,41 @@ class _ConditionsScreenState extends State<ConditionsScreen> {
                           child: CircularProgressIndicator(color: Colors.white),
                         ),
                       )
-                    : OnboardingButton(
-                        text: 'Hoàn thành',
-                        onPressed: _submitData,
-                      ),
+                    : widget.isFromUpdate
+                        ? OnboardingButton(
+                            text: 'Xác nhận chọn bệnh', // 🌟 Đổi tên nút khi ở luồng Update
+                            onPressed: () {
+                              // Chặn cảnh báo đỏ nếu người dùng bỏ tích chọn toàn bộ item ở luồng Update
+                              if (widget.payload.conditionIds.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Vui lòng chọn ít nhất một bệnh nền trước khi xác nhận!'),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Thu thập danh sách tên bệnh nền đã được tích chọn Checkbox
+                              List<String> selectedNames = [];
+                              for (var condition in _conditionsList) {
+                                final int conditionId = condition['id'];
+                                if (widget.payload.conditionIds
+                                    .contains(conditionId)) {
+                                  selectedNames.add(condition['name'] ??
+                                      condition['condition_name'] ??
+                                      'Bệnh nền');
+                                }
+                              }
+                              // POP VÀ TRẢ MẢNG STRING VỀ CHO UPDATE_HEALTH_SCREEN
+                              Navigator.pop(context, selectedNames);
+                            },
+                          )
+                        : OnboardingButton(
+                            text: 'Hoàn thành', // Giữ nguyên nút luồng Register cũ
+                            onPressed: _submitData,
+                          ),
               ),
             ],
           ),

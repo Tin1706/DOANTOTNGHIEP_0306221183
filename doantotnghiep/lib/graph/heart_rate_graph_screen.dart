@@ -157,6 +157,64 @@ class _HeartRateGraphScreenState extends State<HeartRateGraphScreen> {
                         getDrawingHorizontalLine: (value) => FlLine(
                             color: Colors.grey.shade200, strokeWidth: 1)),
                     borderData: FlBorderData(show: false),
+
+                    // 🔴 THÊM ĐOẠN NÀY ĐỂ HIGHLIGHT VÙNG NHỊP TIM AN TOÀN (60 - 80)
+                    extraLinesData: ExtraLinesData(
+                      horizontalLines: [
+                        // ❤️ ĐƯỜNG CHẶN TRÊN (80 bpm)
+                        HorizontalLine(
+                          y: 80,
+                          color: Colors.green.withOpacity(0.4),
+                          strokeWidth: 1.5,
+                          dashArray: [5, 5],
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.topRight,
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => "Tối đa: 80",
+                          ),
+                        ),
+                        // ❤️ ĐƯỜNG CHẶN DƯỚI (60 bpm)
+                        HorizontalLine(
+                          y: 60,
+                          color: Colors.green.withOpacity(0.4),
+                          strokeWidth: 1.5,
+                          dashArray: [5, 5],
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.topRight,
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => "Tối thiểu: 60",
+                          ),
+                        ),
+                        // ❤️ VÙNG HIGHLIGHT NẰM GIỮA (60 - 80)
+                        HorizontalLine(
+                          y: 70.0, // (80 + 60) / 2
+                          strokeWidth:
+                              18, // Độ dày lõi trong dải màu xanh để khít mốc từ 60 đến 80
+                          color: Colors.green.withOpacity(0.12),
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.centerLeft,
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => " VÙNG AN TOÀN",
+                          ),
+                        ),
+                      ],
+                    ),
+
                     titlesData: FlTitlesData(
                       show: true,
                       rightTitles: const AxisTitles(

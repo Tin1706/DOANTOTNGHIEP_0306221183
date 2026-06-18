@@ -20,50 +20,35 @@ class ConditionsDictionary(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     condition_name = Column(String(255), nullable=False)
-
-
-# =========================================================================
-# 2. CÁC BẢNG PHỤ LIÊN KẾT (RELATIONAL TABLES)
-# =========================================================================
-
-# Bảng phụ 1: Liên kết nhiều - nhiều giữa Hồ sơ và Bệnh nền (Cố định lúc Onboarding)
 class PatientCondition(Base):
     __tablename__ = "patient_conditions"
 
-    patient_profile_id = Column(Integer, ForeignKey("patient_profiles.id", ondelete="CASCADE"), primary_key=True)
-    condition_id = Column(Integer, ForeignKey("conditions_dictionary.id", ondelete="CASCADE"), primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
+    # 🔥 ĐÃ SỬA: Đổi từ patient_id thành patient_profile_id cho khớp với API Onboarding của bác
+    patient_profile_id = Column(Integer, ForeignKey("patient_profiles.id", ondelete="CASCADE"))
+    condition_id = Column(Integer, ForeignKey("conditions_dictionary.id", ondelete="CASCADE"))
 
-
-# Bảng phụ 2: Nhật ký lưu triệu chứng phát sinh (Thay đổi theo từng lần đo hằng ngày)
 class PatientSymptom(Base):
     __tablename__ = "patient_symptoms"
 
-    # 🌟 Dùng id riêng làm khóa chính tự tăng để một người có thể lưu lại 
-    # cùng 1 triệu chứng (ví dụ: Chóng mặt) vào nhiều ngày khác nhau mà không bị lỗi DB
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True)
+    # 🔥 ĐÃ SỬA: Đổi tương tự để tí nữa luồng triệu chứng không bị dính lỗi này
+    patient_profile_id = Column(Integer, ForeignKey("patient_profiles.id", ondelete="CASCADE"))
+    symptom_id = Column(Integer, ForeignKey("symptoms_dictionary.id", ondelete="CASCADE"))
+class PatientProfile(Base): 
+    __tablename__ = "patient_profiles" # <-- Thêm chữ 's' cho đúng tên bảng trong ảnh
+    __table_args__ = {'extend_existing': True}
+    id = Column(Integer, primary_key=True, index=True) # Khóa chính AI PK trong ảnh
+    user_id = Column(Integer, index=True)
+    Age = Column(Integer)
+    target_low = Column(Integer)
+    target_high = Column(Integer)
     
-    patient_profile_id = Column(Integer, ForeignKey("patient_profiles.id", ondelete="CASCADE"), nullable=False)
-    symptom_id = Column(Integer, ForeignKey("symptoms_dictionary.id", ondelete="CASCADE"), nullable=False)
-    recorded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # Các trường cần cập nhật
+    weight = Column(Integer, nullable=False) # Trong ảnh của bạn đang để kiểu int
+    height = Column(Integer, nullable=False, default=170) # Đổi height_cm thành height kiểu int
+    allergies = Column(Text) # Trong ảnh của bạn là kiểu text
 
-
-# =========================================================================
-# 3. BẢNG CHÍNH (MAIN TABLE)
-# =========================================================================
-
-# Hồ sơ bệnh nhân (Thông tin cố định lưu từ Onboarding)
-class PatientProfile(Base):
-    __tablename__ = "patient_profiles"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, nullable=False, index=True, unique=True)
-    Age = Column(Integer, nullable=False)
-    weight = Column(Integer, nullable=False)
-    height = Column(Integer, nullable=False)
-    target_low = Column(Integer, nullable=True, default=70)
-    target_high = Column(Integer, nullable=True, default=180)
-    allergies = Column(Text, nullable=True)
-
-    # Thiết lập mối quan hệ phối hợp dữ liệu công nghệ ORM
-    conditions = relationship("PatientCondition", backref="profile", cascade="all, delete-orphan")
-    symptoms = relationship("PatientSymptom", backref="profile", cascade="all, delete-orphan")
+    # 2 cột vừa chạy lệnh ALTER TABLE để thêm ở Bước 1
+    pre_existing_conditions = Column('pre_existing_conditions', Text, nullable=True)
+    symptoms = Column('symptoms', Text, nullable=True)

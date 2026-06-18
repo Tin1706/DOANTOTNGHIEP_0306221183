@@ -7,12 +7,23 @@ import 'low_sugar_symptoms_screen.dart';
 import 'high_sugar_symptoms_screen.dart';
 import 'conditions_screen.dart';
 
-class SymptomsTypeScreen extends StatelessWidget {
+class SymptomsTypeScreen extends StatefulWidget {
   final UserModel user;
   final OnboardingPayload payload;
-  const SymptomsTypeScreen(
-      {super.key, required this.payload, required this.user});
+  final bool isFromUpdate;
 
+  const SymptomsTypeScreen({
+    super.key, 
+    required this.payload, 
+    required this.user,
+    this.isFromUpdate = false,
+  });
+
+  @override
+  State<SymptomsTypeScreen> createState() => _SymptomsTypeScreenState(); 
+}
+
+class _SymptomsTypeScreenState extends State<SymptomsTypeScreen> {
   @override
   Widget build(BuildContext context) {
     const mainCyanColor = Color(0xFF00BCEB);
@@ -21,21 +32,30 @@ class SymptomsTypeScreen extends StatelessWidget {
     final List<Map<String, dynamic>> menuOptions = [
       {
         'title': 'Hạ đường huyết',
-        // 🌟 SỬA: Thay 'widget.userId' bằng 'userId' trực tiếp vì đây là StatelessWidget
         'target': (BuildContext context) =>
-            LowSugarSymptomsScreen(payload: payload, user: user),
+            LowSugarSymptomsScreen(
+              payload: widget.payload, 
+              user: widget.user,
+              isFromUpdate: widget.isFromUpdate, // 🌟 ĐÃ THÊM: Truyền cờ luồng Update sang màn Hạ đường huyết
+            ),
       },
       {
         'title': 'Tăng đường huyết',
-        // 🌟 SỬA: Bổ sung truyền tiếp tham số userId sang cho HighSugarSymptomsScreen
         'target': (BuildContext context) =>
-            HighSugarSymptomsScreen(payload: payload, user: user),
+            HighSugarSymptomsScreen(
+              payload: widget.payload, 
+              user: widget.user,
+              isFromUpdate: widget.isFromUpdate, // 🌟 ĐÃ THÊM: Truyền cờ luồng Update sang màn Tăng đường huyết
+            ),
       },
       {
         'title': 'Ổn định',
-        // 🌟 SỬA: Bổ sung truyền tiếp tham số userId sang cho ConditionsScreen
         'target': (BuildContext context) =>
-            ConditionsScreen(payload: payload, user: user),
+            ConditionsScreen(
+              payload: widget.payload, 
+              user: widget.user, 
+              isFromUpdate: widget.isFromUpdate,
+            ),
       },
     ];
 
@@ -96,13 +116,20 @@ class SymptomsTypeScreen extends StatelessWidget {
                             size: 16,
                             color: Colors.black54,
                           ), // Thêm mũi tên hướng đi cho đúng tính chất menu chuyển màn
-                          onTap: () {
-                            Navigator.push(
+                          onTap: () async {
+                            // Dùng await để hứng dữ liệu mảng String từ màn hình con trả về
+                            final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => option['target'](context),
                               ),
                             );
+                            
+                            // Nếu màn hình con có trả về danh sách triệu chứng hoặc bệnh lý đã chọn,
+                            // lập tức pop tiếp để tuồn dữ liệu về màn hình UpdateHealthScreen gốc
+                            if (result != null) {
+                              Navigator.pop(context, result);
+                            }
                           },
                         ),
                       ),

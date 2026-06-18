@@ -4,7 +4,7 @@ import 'package:doantotnghiep/health_metrics/health_metrics_payload.dart';
 
 class AuthService {
   // 🌟 ĐỒNG BỘ ĐƯỜNG DẪN: Đặt địa chỉ Server gốc ở đây để khi đổi IP chỉ cần sửa đúng 1 dòng này!
-  static const String _baseUrlServer = 'http://localhost:8000';
+  static const String _baseUrlServer = 'http://127.0.0.1:8000';
 
   // Biến cấu hình Dio chuẩn cho toàn bộ class
   final Dio _dio = Dio(BaseOptions(

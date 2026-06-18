@@ -4,7 +4,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:dio/dio.dart';
 
 class DiastolicGraphScreen extends StatefulWidget {
-  // 🟢 ĐỒI TẠI ĐÂY: Nhận hẳn đối tượng UserModel truyền vào từ màn hình trước
   final UserModel user;
 
   const DiastolicGraphScreen({Key? key, required this.user}) : super(key: key);
@@ -29,9 +28,10 @@ class _DiastolicGraphScreenState extends State<DiastolicGraphScreen> {
 
   Future<void> _fetchData() async {
     try {
-      // 🟢 Bốc ID trực tiếp từ thực thể user để tạo điều kiện query
       print("======> THỰC TẾ FLUTTER GỬI USER ID LÀ: ${widget.user.id}");
 
+      // 💡 MẸO ĐỒ ÁN: Hãy thay 'localhost' bằng IP Lan của máy tính bạn (Ví dụ: 192.168.1.5)
+      // để khi nộp bài chạy trên điện thoại thật không bị lỗi kết nối mạng nhé!
       final response = await _dio.get(
         "http://localhost:8000/api/health-metrics/latest",
         queryParameters: {
@@ -39,23 +39,19 @@ class _DiastolicGraphScreenState extends State<DiastolicGraphScreen> {
           "limit": 7,
         },
       );
-      print(response.data);
+
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> chartList = response.data['chartData'] ?? [];
 
         setState(() {
           _spots = [];
-          _dateTimeLabels = []; // Reset danh sách nhãn
+          _dateTimeLabels = [];
 
-          // Duyệt danh sách theo thứ tự thời gian chuẩn của Backend
           for (int i = 0; i < chartList.length; i++) {
             var item = chartList[i];
             if (item['diastolic_bp'] != null) {
               double value = double.parse(item['diastolic_bp'].toString());
-              // Tạo tọa độ điểm vẽ bắt đầu từ index 0
               _spots.add(FlSpot(i.toDouble(), value));
-
-              // Lưu lại mốc thời gian định dạng ngày/tháng giờ:phút
               _dateTimeLabels.add(item['date'] ?? "");
             }
           }
@@ -82,7 +78,6 @@ class _DiastolicGraphScreenState extends State<DiastolicGraphScreen> {
             icon:
                 const Icon(Icons.arrow_back_ios, color: Colors.black, size: 22),
             onPressed: () => Navigator.of(context).pop()),
-        // 🟢 Hiển thị tên động lấy từ thực thể user lên AppBar thanh lịch
         title: Text(
           "Huyết áp của ${widget.user.name}",
           style:
@@ -99,14 +94,14 @@ class _DiastolicGraphScreenState extends State<DiastolicGraphScreen> {
                       child: Text(_error!,
                           style: const TextStyle(color: Colors.white),
                           textAlign: TextAlign.center)))
-              : Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      // 🟢 Thêm dòng định danh tên Bệnh nhân động phía trên biểu đồ
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
+              : SingleChildScrollView(
+                  // ✅ THAY THẾ: Dùng cuộn trang thay vì Expanded chống tràn hiển thị
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
                           padding:
                               const EdgeInsets.only(bottom: 12.0, left: 4.0),
                           child: Text(
@@ -117,16 +112,16 @@ class _DiastolicGraphScreenState extends State<DiastolicGraphScreen> {
                                 fontWeight: FontWeight.w500),
                           ),
                         ),
-                      ),
-                      Expanded(
-                        child: _buildChartContainer(
-                            "Huyết áp tâm trương (mmHg)",
-                            _spots,
-                            Colors.blueAccent,
-                            40,
-                            130),
-                      ),
-                    ],
+                        // ✅ ĐÃ KHẮC PHỤC: Không bọc Expanded xung quanh hàm vẽ biểu đồ nữa
+                        _buildChartContainer(
+                          "Huyết áp tâm trương (mmHg)",
+                          _spots,
+                          Colors.blueAccent,
+                          40,
+                          130,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
     );
@@ -163,6 +158,60 @@ class _DiastolicGraphScreenState extends State<DiastolicGraphScreen> {
                         getDrawingHorizontalLine: (value) => FlLine(
                             color: Colors.grey.shade200, strokeWidth: 1)),
                     borderData: FlBorderData(show: false),
+                    extraLinesData: ExtraLinesData(
+                      horizontalLines: [
+                        // 🔵 ĐƯỜNG CHẶN TRÊN (89 mmHg)
+                        HorizontalLine(
+                          y: 89,
+                          color: Colors.green.withOpacity(0.4),
+                          strokeWidth: 1.5,
+                          dashArray: [5, 5],
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.topRight,
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => "Tối đa: 89",
+                          ),
+                        ),
+                        // 🔵 ĐƯỜNG CHẶN DƯỚI (60 mmHg)
+                        HorizontalLine(
+                          y: 60,
+                          color: Colors.green.withOpacity(0.4),
+                          strokeWidth: 1.5,
+                          dashArray: [5, 5],
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.topRight,
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => "Tối thiểu: 60",
+                          ),
+                        ),
+                        // 🔵 VÙNG HIGHLIGHT NẰM GIỮA
+                        HorizontalLine(
+                          y: 74.5, // (89 + 60) / 2
+                          strokeWidth: 26, // Cân đối lại độ dày lõi dải màu
+                          color: Colors.green.withOpacity(0.12),
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.centerLeft,
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => " VÙNG AN TOÀN",
+                          ),
+                        ),
+                      ],
+                    ),
                     titlesData: FlTitlesData(
                       show: true,
                       rightTitles: const AxisTitles(
@@ -176,7 +225,6 @@ class _DiastolicGraphScreenState extends State<DiastolicGraphScreen> {
                               getTitlesWidget: (v, m) {
                                 int index = v.toInt();
                                 String labelText = "";
-                                // Map chính xác vị trí sang chuỗi thời gian thực tế
                                 if (index >= 0 &&
                                     index < _dateTimeLabels.length) {
                                   labelText = _dateTimeLabels[index];

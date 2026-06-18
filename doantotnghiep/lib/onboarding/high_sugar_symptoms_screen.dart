@@ -10,8 +10,9 @@ import 'onboarding_api_services.dart';
 class HighSugarSymptomsScreen extends StatefulWidget {
   final UserModel user;
   final OnboardingPayload payload;
+  final bool isFromUpdate;
   const HighSugarSymptomsScreen(
-      {super.key, required this.payload, required this.user});
+      {super.key, required this.payload, required this.user, this.isFromUpdate = false});
 
   @override
   State<HighSugarSymptomsScreen> createState() =>
@@ -28,6 +29,34 @@ class _HighSugarSymptomsScreenState extends State<HighSugarSymptomsScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // 🌟 TỰ ĐỘNG ĐỒNG BỘ TRIỆU CHỨNG CŨ NẾU LÀ LUỒNG UPDATE MÀ PAYLOAD ĐANG TRỐNG
+    if (widget.isFromUpdate && widget.payload.symptomIds.isEmpty) {
+      try {
+        // Kiểm tra thuộc tính chứa danh sách triệu chứng trong UserModel của bác.
+        // Giả sử tên thuộc tính là `symptoms`. Nếu cấu trúc của bác khác (ví dụ: user.patientProfile.symptoms), hãy chỉnh lại nhé!
+        final dynamic userSymptoms = (widget.user as dynamic).symptoms;
+        if (userSymptoms != null && userSymptoms is List) {
+          for (var item in userSymptoms) {
+            if (item is Map) {
+              final id = item['id'];
+              // Chỉ nạp các ID thuộc dải Tăng đường huyết (11 đến 18) vào màn hình này
+              if (id != null && id >= 11 && id <= 18) {
+                widget.payload.symptomIds.add(id as int);
+              }
+            } else {
+              final id = (item as dynamic).id;
+              if (id != null && id >= 11 && id <= 18) {
+                widget.payload.symptomIds.add(id as int);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print("Không thể tự động trích xuất ID triệu chứng cũ: $e");
+      }
+    }
+
     _fetchSymptomsFromServer();
   }
 
@@ -99,12 +128,12 @@ class _HighSugarSymptomsScreenState extends State<HighSugarSymptomsScreen> {
                               final symptom = _filteredSymptoms[index];
                               final int symptomId = symptom['id'];
 
-                              // 🌟 FIX LỖI CRASH NULL: Tự động quét tìm đúng cột tên trong DB của bạn
                               final String symptomName = symptom['name'] ??
                                   symptom['symptom_name'] ??
                                   symptom['symptomName'] ??
                                   'Triệu chứng không rõ tên';
 
+                              // Trạng thái hiển thị Checkbox dựa vào danh sách ID trong payload
                               final isSelected =
                                   widget.payload.symptomIds.contains(symptomId);
 
@@ -152,17 +181,16 @@ class _HighSugarSymptomsScreenState extends State<HighSugarSymptomsScreen> {
                           ),
               ),
 
-              // high_sugar_symptoms_screen.dart
+              // Nút bấm đã được tích hợp cả 2 luồng độc lập
               Align(
                 alignment: Alignment.center,
                 child: OnboardingButton(
-                  text: 'Kế tiếp',
+                  text: widget.isFromUpdate ? 'Xác nhận chọn' : 'Kế tiếp',
                   onPressed: () {
                     final hasHighSugarSymptom = widget.payload.symptomIds
                         .any((id) => id >= 11 && id <= 18);
 
                     if (!hasHighSugarSymptom) {
-                      // Nếu chưa chọn cái nào thuộc dải ID này, lập tức quăng cảnh báo đỏ và chặn lại
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
@@ -171,24 +199,40 @@ class _HighSugarSymptomsScreenState extends State<HighSugarSymptomsScreen> {
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
-                      return; // 🛑 Dừng luồng xử lý, không cho chuyển màn hình
+                      return; 
                     }
-                    // 🌟 Đóng gói lại payload bằng copyWith để ép duy trì userId chuẩn chỉnh
-                    final updatedPayload = widget.payload.copyWith(
-                      symptomIds: widget.payload.symptomIds,
-                    );
 
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        // Truyền updatedPayload thay vì widget.payload cũ
-                        builder: (context) => ConditionsScreen(
-                          payload: updatedPayload,
-                          // 🟢 ĐÃ SỬA LỖI tại đây: Thay thế widget.userId cũ bằng widget.user.id
-                          user: widget.user,
+                    if (widget.isFromUpdate) {
+                      // 1. LUỒNG CẬP NHẬT: Duyệt mảng lấy ra danh sách TÊN triệu chứng đã tích chọn
+                      List<String> selectedNames = [];
+                      for (var symptom in _filteredSymptoms) {
+                        final int symptomId = symptom['id'];
+                        if (widget.payload.symptomIds.contains(symptomId)) {
+                          final String symptomName = symptom['name'] ??
+                              symptom['symptom_name'] ??
+                              symptom['symptomName'] ??
+                              'Triệu chứng';
+                          selectedNames.add(symptomName);
+                        }
+                      }
+                      // Pop mảng String về cho menu trung gian gánh tiếp về UpdateHealthScreen
+                      Navigator.pop(context, selectedNames);
+                    } else {
+                      // 2. LUỒNG ONBOARDING GỐC
+                      final updatedPayload = widget.payload.copyWith(
+                        symptomIds: widget.payload.symptomIds,
+                      );
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ConditionsScreen(
+                            payload: updatedPayload,
+                            user: widget.user,
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    }
                   },
                 ),
               ),

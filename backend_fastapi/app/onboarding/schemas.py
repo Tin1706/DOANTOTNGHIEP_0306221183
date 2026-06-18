@@ -3,19 +3,15 @@ from typing import List, Optional
 from datetime import date
 
 class OnboardingInput(BaseModel):
-    user_id: int = Field(..., gt=0, description="ID của tài khoản người dùng")
-    date_of_birth: date = Field(..., description="Ngày sinh của bệnh nhân (YYYY-MM-DD)")
-    weight: int = Field(..., gt=0, description="Cân nặng (kg)")
-    height: int = Field(..., gt=0, description="Chiều cao (cm)")
-    allergies: Optional[str] = Field(default=None, description="Thông tin dị ứng")
-    
-    target_low: int = Field(default=70, gt=0)
-    target_high: int = Field(default=180, gt=0)
-
-    condition_ids: List[int] = Field(..., min_length=1, description="Danh sách ID bệnh nền không được trống")
-    # 🌟 Đã đem symptom_ids quay trở lại đúng vị trí Onboarding theo ý bạn!
-    symptom_ids: List[int] = Field(default=[], description="Danh sách ID triệu chứng ban đầu của bệnh nhân")
-
+    user_id: int
+    height: float
+    weight: float
+    allergies: str | None = None
+    date_of_birth: str | None = None
+    pre_existing_conditions: List[str] = [] 
+    symptoms: List[str] = []
+    target_low: Optional[int] = 70
+    target_high: Optional[int] = 180
 class OnboardingResponse(BaseModel):
     patient_profile_id: int
     Age: int

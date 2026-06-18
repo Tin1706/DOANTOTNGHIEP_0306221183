@@ -4,7 +4,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:dio/dio.dart';
 
 class SystolicGraphScreen extends StatefulWidget {
-  // 🟢 ĐỔI TẠI ĐÂY: Nhận hẳn đối tượng UserModel truyền vào thay vì int userId
   final UserModel user;
 
   const SystolicGraphScreen({Key? key, required this.user}) : super(key: key);
@@ -16,8 +15,7 @@ class SystolicGraphScreen extends StatefulWidget {
 class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
   final Dio _dio = Dio();
   List<FlSpot> _spots = [];
-  List<String> _dateTimeLabels =
-      []; // Danh sách chứa nhãn Ngày/Giờ thực tế từ DB
+  List<String> _dateTimeLabels = [];
   bool _isLoading = true;
   String? _error;
 
@@ -29,9 +27,9 @@ class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
 
   Future<void> _fetchData() async {
     try {
-      // 🟢 Bốc ID trực tiếp từ đối tượng user của widget
       print("======> THỰC TẾ FLUTTER GỬI USER ID LÀ: ${widget.user.id}");
 
+      // 💡 LƯU Ý: Thay 'localhost' bằng IP máy tính (Ví dụ: 192.168.1.5) nếu chạy trên máy thật
       final response = await _dio.get(
         "http://localhost:8000/api/health-metrics/latest",
         queryParameters: {
@@ -39,22 +37,19 @@ class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
           "limit": 7,
         },
       );
+
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> chartList = response.data['chartData'] ?? [];
 
         setState(() {
           _spots = [];
-          _dateTimeLabels = []; // Reset danh sách nhãn
+          _dateTimeLabels = [];
 
-          // 🟢 Duyệt danh sách theo tiến trình thời gian chuẩn của Backend
           for (int i = 0; i < chartList.length; i++) {
             var item = chartList[i];
             if (item['systolic_bp'] != null) {
               double value = double.parse(item['systolic_bp'].toString());
-              // Lưu tọa độ điểm vẽ bắt đầu từ index 0
               _spots.add(FlSpot(i.toDouble(), value));
-
-              // Lưu lại mốc thời gian định dạng ngày/tháng giờ:phút
               _dateTimeLabels.add(item['date'] ?? "");
             }
           }
@@ -81,7 +76,6 @@ class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
             icon:
                 const Icon(Icons.arrow_back_ios, color: Colors.black, size: 22),
             onPressed: () => Navigator.of(context).pop()),
-        // 🟢 Lấy trực tiếp tên hiển thị từ widget.user.name lên AppBar
         title: Text(
           "Huyết áp của ${widget.user.name}",
           style:
@@ -98,14 +92,14 @@ class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
                       child: Text(_error!,
                           style: const TextStyle(color: Colors.white),
                           textAlign: TextAlign.center)))
-              : Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      // 🟢 Dòng hiển thị tên Bệnh nhân động phía trên biểu đồ
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
+              : SingleChildScrollView(
+                  // ✅ Dùng SingleChildScrollView để chống tràn màn hình nhỏ
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
                           padding:
                               const EdgeInsets.only(bottom: 12.0, left: 4.0),
                           child: Text(
@@ -116,12 +110,11 @@ class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
                                 fontWeight: FontWeight.w500),
                           ),
                         ),
-                      ),
-                      Expanded(
-                        child: _buildChartContainer("Huyết áp tâm thu (mmHg)",
-                            _spots, Colors.redAccent, 70, 180),
-                      ),
-                    ],
+                        // ✅ ĐÃ BỎ Expanded ở đây để tránh lỗi xung đột kích thước layout
+                        _buildChartContainer("Huyết áp tâm thu (mmHg)", _spots,
+                            Colors.redAccent, 70, 180),
+                      ],
+                    ),
                   ),
                 ),
     );
@@ -158,6 +151,62 @@ class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
                         getDrawingHorizontalLine: (value) => FlLine(
                             color: Colors.grey.shade200, strokeWidth: 1)),
                     borderData: FlBorderData(show: false),
+                    extraLinesData: ExtraLinesData(
+                      horizontalLines: [
+                        // 🟢 ĐƯỜNG CHẶN TRÊN (139 mmHg)
+                        HorizontalLine(
+                          y: 139,
+                          color: Colors.green.withOpacity(0.4),
+                          strokeWidth: 1.5,
+                          dashArray: [5, 5], // Đường nét đứt cho tinh tế
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.topRight,
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => "Tối đa: 139",
+                          ),
+                        ),
+                        // 🟢 ĐƯỜNG CHẶN DƯỚI (90 mmHg)
+                        HorizontalLine(
+                          y: 90,
+                          color: Colors.green.withOpacity(0.4),
+                          strokeWidth: 1.5,
+                          dashArray: [5, 5],
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.topRight,
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => "Tối thiểu: 90",
+                          ),
+                        ),
+                        // 🟢 VÙNG HIGHLIGHT NẰM GIỮA ĐƯỢC TÍNH TOÁN LẠI
+                        HorizontalLine(
+                          y: 114.5, // (139 + 90) / 2
+                          strokeWidth:
+                              44.5, // Giảm bớt strokeWidth để không bị tràn qua mốc 90 và 139 do bo viền
+                          color: Colors.green
+                              .withOpacity(0.12), // Màu nền xanh nhẹ rõ ràng
+                          label: HorizontalLineLabel(
+                            show: true,
+                            alignment: Alignment.centerLeft,
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            labelResolver: (line) => " VÙNG AN TOÀN",
+                          ),
+                        ),
+                      ],
+                    ),
                     titlesData: FlTitlesData(
                       show: true,
                       rightTitles: const AxisTitles(
@@ -171,7 +220,6 @@ class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
                               getTitlesWidget: (v, m) {
                                 int index = v.toInt();
                                 String labelText = "";
-                                // Map chính xác vị trí sang chuỗi thời gian thực tế
                                 if (index >= 0 &&
                                     index < _dateTimeLabels.length) {
                                   labelText = _dateTimeLabels[index];
