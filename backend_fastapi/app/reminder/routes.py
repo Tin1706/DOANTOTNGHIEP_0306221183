@@ -1,6 +1,9 @@
+from datetime import datetime, time # 🟢 ĐÃ SỬA: Import trực tiếp các hàm xử lý thời gian tránh lỗi Attribute
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.reminder.models import MedicationLog, Reminder
 from . import services
 from . import schemas
 
@@ -85,7 +88,6 @@ def create_new_reminder(payload: schemas.ReminderCreateRequest, db: Session = De
             data={
                 "reminder_id": reminder.id,
                 "title": payload.title,
-                # 🟢 TỐI ƯU: Nếu dosage bị null hoặc trống, chuyển thành nội dung nhắc nhở thân thiện trên điện thoại
                 "body": payload.dosage if (payload.dosage and payload.dosage.strip() != "") else "Đến giờ thực hiện hành động!",
                 "hour": hour,
                 "minute": minute
@@ -128,7 +130,6 @@ def update_existing_reminder(reminder_id: int, payload: schemas.ReminderUpdateRe
             data={
                 "reminder_id": updated_reminder.id,
                 "title": payload.title,
-                # 🟢 TỐI ƯU: Xử lý an toàn chuỗi rỗng/null cho thiết bị nhận diện
                 "body": payload.dosage if (payload.dosage and payload.dosage.strip() != "") else "Đến giờ thực hiện hành động!",
                 "hour": hour,
                 "minute": minute,
@@ -170,7 +171,7 @@ def delete_existing_reminder(reminder_id: int, db: Session = Depends(get_db)):
         )
 
 
-# --- API 6: GHI LOG NHẬT KÝ SỬ DỤNG THUỐC ---
+# --- API 6: GHI LOG NHẬT KÝ SỬ DỤNG THUỐC (ENDPOINT THEO ROUTE CON) ---
 @router.post(
     "/logs/log-intake", 
     response_model=schemas.CommonApiResponse,
@@ -200,31 +201,49 @@ def log_medication_intake(payload: schemas.MedicationLogRequest, db: Session = D
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi hệ thống khi ghi nhật ký: {str(e)}"
         )
+
+
+# --- API 7: TÍNH TOÁN TỈ LỆ TUÂN THỦ (ADHERENCE RATE) ---
 @router.post("/calculate", response_model=schemas.AdherenceApiResponse)
-async def calculate_user_adherence(payload: schemas.AdherenceCalculationRequest):
+async def calculate_user_adherence(
+    payload: schemas.AdherenceCalculationRequest, 
+    db: Session = Depends(get_db)
+):
     if payload.start_date > payload.end_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Ngày bắt đầu không thể lớn hơn ngày kết thúc."
         )
         
-    # --- PHẦN GIẢ LẬP TRUY VẤN DATABASE ---
-    # Trong thực tế, bạn sẽ viết query SQL hoặc SQLAlchemy kiểu như:
-    # total_scheduled = db.query(ReminderLog)... (hoặc tính dựa trên số ngày * số lịch nhắc/ngày)
-    # total_taken = db.query(MedicationLog).filter(MedicationLog.user_id == payload.user_id, MedicationLog.status == "taken", MedicationLog.logged_at.between(...)).count()
+    # Đếm số lịch nhắc đang hoạt động của user (loại bỏ lịch đã xóa mềm)
+    active_reminders_count = db.query(Reminder).filter(
+        Reminder.user_id == payload.user_id,
+        Reminder.is_active == 1,
+        Reminder.is_deleted == 0
+    ).count()
     
-    # Giả lập dữ liệu mẫu thu được từ database:
-    total_scheduled = 30  # Lịch hẹn 30 lần uống thuốc trong khoảng thời gian đó
-    total_taken = 24      # Thực tế người dùng bấm "Đã uống" 24 lần
-    # --------------------------------------
+    # Tính tổng số ngày được chọn lọc
+    total_days = (payload.end_date - payload.start_date).days + 1
+    total_scheduled = active_reminders_count * total_days
 
+    # 🟢 ĐÃ SỬA: Sử dụng trực tiếp hàm combine và time từ datetime đã sửa đổi import ở đầu file
+    # Sửa từ combine(...) thành datetime.combine(...)
+    start_datetime = datetime.combine(payload.start_date, time.min)
+    end_datetime = datetime.combine(payload.end_date, time.max)
+
+    # Đếm tổng số bản ghi thực tế người bệnh đã bấm "Đã uống" (taken)
+    total_taken = db.query(MedicationLog).filter(
+        MedicationLog.user_id == payload.user_id,
+        MedicationLog.status == "taken",
+        MedicationLog.logged_at >= start_datetime,
+        MedicationLog.logged_at <= end_datetime
+    ).count()
+    
     if total_scheduled == 0:
         adherence_rate = 0.0
     else:
-        # Tính toán tỉ lệ phần trăm dựa trên log thực tế
         adherence_rate = round((total_taken / total_scheduled) * 100, 2)
         
-    # Đánh giá tiêu chuẩn y tế (>= 80% là đạt)
     is_compliant = adherence_rate >= 80.0
     status_msg = "Tuyệt vời! Bạn tuân thủ điều trị rất tốt." if is_compliant else "Nhắc nhở: Bạn đang uống thiếu liều, hãy chú ý hơn nhé!"
 
@@ -239,3 +258,31 @@ async def calculate_user_adherence(payload: schemas.AdherenceCalculationRequest)
             status_message=status_msg
         )
     )
+
+
+# --- API 8: TẠO NHANH LOG QUA ĐƯỜNG DẪN GỐC ---
+@router.post("/", response_model=schemas.CommonApiResponse, status_code=status.HTTP_201_CREATED)
+async def create_log(payload: schemas.MedicationLogRequest, db: Session = Depends(get_db)):
+    try:
+        new_log = MedicationLog(
+            user_id=payload.user_id,
+            reminder_id=payload.reminder_id,
+            status=payload.status,  
+            notes=payload.notes
+        )
+        
+        db.add(new_log)
+        db.commit()
+        db.refresh(new_log)
+        
+        return schemas.CommonApiResponse(
+            success=True,
+            message="Ghi nhật ký uống thuốc thành công!",
+            data={"log_id": new_log.id}
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi hệ thống khi ghi log: {str(e)}"
+        )
