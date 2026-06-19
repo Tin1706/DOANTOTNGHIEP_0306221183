@@ -13,14 +13,14 @@ class SymptomsTypeScreen extends StatefulWidget {
   final bool isFromUpdate;
 
   const SymptomsTypeScreen({
-    super.key, 
-    required this.payload, 
+    super.key,
+    required this.payload,
     required this.user,
     this.isFromUpdate = false,
   });
 
   @override
-  State<SymptomsTypeScreen> createState() => _SymptomsTypeScreenState(); 
+  State<SymptomsTypeScreen> createState() => _SymptomsTypeScreenState();
 }
 
 class _SymptomsTypeScreenState extends State<SymptomsTypeScreen> {
@@ -28,36 +28,38 @@ class _SymptomsTypeScreenState extends State<SymptomsTypeScreen> {
   Widget build(BuildContext context) {
     const mainCyanColor = Color(0xFF00BCEB);
 
-    // Danh sách các lựa chọn tương ứng theo Figma
+    // 1. Khởi tạo danh sách các lựa chọn đầy đủ ban đầu
     final List<Map<String, dynamic>> menuOptions = [
       {
         'title': 'Hạ đường huyết',
-        'target': (BuildContext context) =>
-            LowSugarSymptomsScreen(
-              payload: widget.payload, 
+        'target': (BuildContext context) => LowSugarSymptomsScreen(
+              payload: widget.payload,
               user: widget.user,
-              isFromUpdate: widget.isFromUpdate, // 🌟 ĐÃ THÊM: Truyền cờ luồng Update sang màn Hạ đường huyết
+              isFromUpdate: widget.isFromUpdate,
             ),
       },
       {
         'title': 'Tăng đường huyết',
-        'target': (BuildContext context) =>
-            HighSugarSymptomsScreen(
-              payload: widget.payload, 
+        'target': (BuildContext context) => HighSugarSymptomsScreen(
+              payload: widget.payload,
               user: widget.user,
-              isFromUpdate: widget.isFromUpdate, // 🌟 ĐÃ THÊM: Truyền cờ luồng Update sang màn Tăng đường huyết
+              isFromUpdate: widget.isFromUpdate,
             ),
       },
       {
         'title': 'Ổn định',
-        'target': (BuildContext context) =>
-            ConditionsScreen(
-              payload: widget.payload, 
-              user: widget.user, 
+        'target': (BuildContext context) => ConditionsScreen(
+              payload: widget.payload,
+              user: widget.user,
               isFromUpdate: widget.isFromUpdate,
             ),
       },
     ];
+
+    // 🌟 ĐOẠN SỬA ĐỔI: Nếu đi từ màn hình Update (isFromUpdate == true), lọc bỏ "Ổn định"
+    if (widget.isFromUpdate) {
+      menuOptions.removeWhere((option) => option['title'] == 'Ổn định');
+    }
 
     return Scaffold(
       backgroundColor: mainCyanColor,
@@ -124,7 +126,7 @@ class _SymptomsTypeScreenState extends State<SymptomsTypeScreen> {
                                 builder: (context) => option['target'](context),
                               ),
                             );
-                            
+
                             // Nếu màn hình con có trả về danh sách triệu chứng hoặc bệnh lý đã chọn,
                             // lập tức pop tiếp để tuồn dữ liệu về màn hình UpdateHealthScreen gốc
                             if (result != null) {
