@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'reminder_models.dart';
 import 'add_reminder_page.dart';
 import 'dart:async';
-import 'package:audioplayers/audioplayers.dart'; // 🟢 1. THÊM THƯ VIỆN ĐỂ PHÁT CHUÔNG
+import 'package:audioplayers/audioplayers.dart';
 
 class ReminderListPage extends StatefulWidget {
   final UserModel user;
@@ -22,7 +22,6 @@ class _ReminderListPageState extends State<ReminderListPage> {
   bool _isLoading = true;
   final List<Timer> _reminderTimers = [];
 
-  // 🟢 2. KHỞI TẠO PLAYER ĐỂ ĐIỀU KHIỂN ÂM THANH
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
@@ -36,12 +35,10 @@ class _ReminderListPageState extends State<ReminderListPage> {
     for (var timer in _reminderTimers) {
       timer.cancel();
     }
-    _audioPlayer
-        .dispose(); // 🟢 3. GIẢI PHÓNG BỘ NHỚ CỦA PLAYER KHI THOÁT TRANG
+    _audioPlayer.dispose();
     super.dispose();
   }
 
-  // 🟢 Hàm quét danh sách nhắc nhở và lên lịch đếm ngược
   void _startWebAlarmSystem(List<ReminderItem> reminders) {
     for (var timer in _reminderTimers) {
       timer.cancel();
@@ -68,7 +65,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
                 "⏰ [Báo thức] Phát hiện nhắc nhở [${item.title}] trùng giờ phút hiện tại. Kích hoạt hiển thị!");
 
             Timer(const Duration(milliseconds: 500), () {
-              _showAlarmDialog(item.title, item.dosage);
+              _showAlarmDialog(item); // 🟢 Sửa: Truyền cả object item vào dialog
             });
 
             scheduledDate = scheduledDate.add(const Duration(days: 1));
@@ -81,7 +78,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
               "⏳ Nhắc nhở [${item.title}] đã được lên lịch. Sẽ nổ tiếp theo sau: ${duration.inMinutes} minutes (${duration.inSeconds} seconds)");
 
           final timer = Timer(duration, () {
-            _showAlarmDialog(item.title, item.dosage);
+            _showAlarmDialog(item); // 🟢 Sửa: Truyền cả object item vào dialog
             _startWebAlarmSystem(reminders);
           });
 
@@ -93,14 +90,44 @@ class _ReminderListPageState extends State<ReminderListPage> {
     }
   }
 
+  // 🟢 THÊM HÀM GỌI API GHI NHẬT KÝ VÀO BẢNG MEDICATION_LOGS
+  Future<void> _sendMedicationLog(int reminderId) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/logs/log-intake"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "user_id": widget.user.id,
+          "reminder_id": reminderId,
+          "status": "taken", // Trạng thái 'taken' giúp backend tính điểm tuân thủ
+          "notes": "Người dùng xác nhận hành động từ pop-up thông báo trên App"
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final Map<String, dynamic> resData = json.decode(utf8.decode(response.bodyBytes));
+        if (resData['success'] == true) {
+          print("🎯 THÀNH CÔNG: Đã lưu bản ghi lịch sử vào bảng medication_logs (Log ID: ${resData['data']['log_id']})");
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('🎉 Hệ thống đã ghi nhận lịch sử uống thuốc thực tế!'))
+            );
+          }
+        }
+      } else {
+        print("❌ LỖI KẾT NỐI API: Mã lỗi ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ LỖI HỆ THỐNG KHI GỬI LOG: $e");
+    }
+  }
+
   // 🖥️ Hàm hiển thị AlertDialog báo thức ngay tại màn hình danh sách
-  void _showAlarmDialog(String title, String dosage) async {
+  void _showAlarmDialog(ReminderItem item) async { // 🟢 Sửa tham số nhận vào cả Object ReminderItem
     if (!mounted) return;
 
-    // 🟢 4. KHI NỔ POP-UP: PHÁT LẶP ĐI LẶP LẠI FILE CHUÔNG BÁO THỨC TRONG ASSETS
     try {
-      await _audioPlayer.setReleaseMode(
-          ReleaseMode.loop); // Đặt chế độ lặp vô hạn cho đến khi tắt
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
       await _audioPlayer.play(AssetSource('chuong_bao_thuc.mp3'));
     } catch (e) {
       print("Không thể phát chuông báo thức: $e");
@@ -111,8 +138,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
       barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
               Icon(Icons.alarm, color: Colors.cyan, size: 30),
@@ -125,13 +151,13 @@ class _ReminderListPageState extends State<ReminderListPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
+              Text(item.title,
                   style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87)),
               const SizedBox(height: 8),
-              Text("Liều lượng: $dosage",
+              Text("Liều lượng: ${item.dosage}",
                   style: const TextStyle(fontSize: 16, color: Colors.blueGrey)),
             ],
           ),
@@ -143,9 +169,14 @@ class _ReminderListPageState extends State<ReminderListPage> {
                     borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () async {
-                await _audioPlayer
-                    .stop(); // 🟢 5. KHI BỆNH NHÂN BẤM NÚT "ĐÃ UỐNG": TẮT CHUÔNG NGAY
+                // 1. Tắt chuông báo thức ngay lập tức
+                await _audioPlayer.stop();
+                
+                // 2. Tắt màn hình thông báo Pop-up
                 if (mounted) Navigator.of(ctx).pop();
+
+                // 3. 🟢 KÍCH HOẠT: Gọi API bắn dữ liệu vào MySQL ngay sau khi nhấn nút
+                await _sendMedicationLog(item.id);
               },
               child: const Text('Đã thực hiện',
                   style: TextStyle(
@@ -247,8 +278,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16)),
                                   const SizedBox(height: 4),
-                                  Text(
-                                      "Tên thuốc: ${item.title}"),
+                                  Text("Tên thuốc: ${item.title}"),
                                   const SizedBox(height: 4),
                                   Text("Liều lượng: ${item.dosage}"),
                                   const SizedBox(height: 4),
