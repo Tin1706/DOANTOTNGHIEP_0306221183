@@ -200,3 +200,42 @@ def log_medication_intake(payload: schemas.MedicationLogRequest, db: Session = D
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi hệ thống khi ghi nhật ký: {str(e)}"
         )
+@router.post("/calculate", response_model=schemas.AdherenceApiResponse)
+async def calculate_user_adherence(payload: schemas.AdherenceCalculationRequest):
+    if payload.start_date > payload.end_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Ngày bắt đầu không thể lớn hơn ngày kết thúc."
+        )
+        
+    # --- PHẦN GIẢ LẬP TRUY VẤN DATABASE ---
+    # Trong thực tế, bạn sẽ viết query SQL hoặc SQLAlchemy kiểu như:
+    # total_scheduled = db.query(ReminderLog)... (hoặc tính dựa trên số ngày * số lịch nhắc/ngày)
+    # total_taken = db.query(MedicationLog).filter(MedicationLog.user_id == payload.user_id, MedicationLog.status == "taken", MedicationLog.logged_at.between(...)).count()
+    
+    # Giả lập dữ liệu mẫu thu được từ database:
+    total_scheduled = 30  # Lịch hẹn 30 lần uống thuốc trong khoảng thời gian đó
+    total_taken = 24      # Thực tế người dùng bấm "Đã uống" 24 lần
+    # --------------------------------------
+
+    if total_scheduled == 0:
+        adherence_rate = 0.0
+    else:
+        # Tính toán tỉ lệ phần trăm dựa trên log thực tế
+        adherence_rate = round((total_taken / total_scheduled) * 100, 2)
+        
+    # Đánh giá tiêu chuẩn y tế (>= 80% là đạt)
+    is_compliant = adherence_rate >= 80.0
+    status_msg = "Tuyệt vời! Bạn tuân thủ điều trị rất tốt." if is_compliant else "Nhắc nhở: Bạn đang uống thiếu liều, hãy chú ý hơn nhé!"
+
+    return schemas.AdherenceApiResponse(
+        success=True,
+        message="Tính toán tỉ lệ tuân thủ thành công.",
+        data=schemas.AdherenceDataResponse(
+            user_id=payload.user_id,
+            total_scheduled=total_scheduled,
+            total_taken=total_taken,
+            adherence_rate=adherence_rate,
+            status_message=status_msg
+        )
+    )

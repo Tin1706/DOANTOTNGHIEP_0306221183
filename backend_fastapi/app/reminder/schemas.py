@@ -94,3 +94,22 @@ class CommonApiResponse(BaseModel):
     success: bool
     message: str
     data: Optional[dict] = None
+    
+class AdherenceCalculationRequest(BaseModel):
+    user_id: int
+    start_date: date  # Ví dụ: "2026-06-01"
+    end_date: date    # Ví dụ: "2026-06-19"
+
+# Dữ liệu chi tiết trả về cho Flutter
+class AdherenceDataResponse(BaseModel):
+    user_id: int
+    total_scheduled: int   # Tổng số lần/ngày đáng lẽ phải uống
+    total_taken: int       # Số lần thực tế bấm "Đã uống"
+    adherence_rate: float  # Tỉ lệ phần trăm (float)
+    status_message: str    # "Đạt chuẩn" hoặc "Cần chú ý"
+
+# Response chuẩn hóa theo pattern của bạn
+class AdherenceApiResponse(BaseModel):
+    success: bool
+    message: str
+    data: AdherenceDataResponse
