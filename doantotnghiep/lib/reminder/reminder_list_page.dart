@@ -39,6 +39,50 @@ class _ReminderListPageState extends State<ReminderListPage> {
     super.dispose();
   }
 
+  // 🟢 HÀM KIỂM TRA VÀ GHI NHẬN CÁC LỊCH NHẮC ĐÃ BỊ BỎ LỠ (MISSED) TRONG NGÀY
+  Future<void> _checkAndLogMissedReminders(List<ReminderItem> reminders) async {
+    final now = DateTime.now();
+
+    for (var item in reminders) {
+      if (item.isActive == 1) {
+        final String timeStr = item.reminderTime;
+        if (timeStr.isEmpty) continue;
+
+        try {
+          final parts = timeStr.split(':');
+          final int hour = int.parse(parts[0]);
+          final int minute = int.parse(parts[1]);
+
+          // Khung giờ đáng lẽ phải uống thuốc của ngày hôm nay
+          final scheduledToday = DateTime(now.year, now.month, now.day, hour, minute, 0);
+
+          // Khung giờ đó đã trôi qua trong hôm nay (trước hiện tại ít nhất 1 phút)
+          if (scheduledToday.isBefore(now.subtract(const Duration(minutes: 1)))) {
+            final String todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+            
+            final checkResponse = await http.post(
+              Uri.parse("$baseUrl/calculate"),
+              headers: {"Content-Type": "application/json"},
+              body: json.encode({
+                "user_id": widget.user.id,
+                "start_date": todayStr,
+                "end_date": todayStr
+              }),
+            );
+
+            if (checkResponse.statusCode == 200) {
+              // Bắn trạng thái tự động "missed" lên hệ thống
+              await _sendMedicationLog(item.id, status: "missed", isAuto: true);
+            }
+          }
+        } catch (e) {
+          print("Lỗi khi quét lịch bỏ lỡ của ${item.title}: $e");
+        }
+      }
+    }
+  }
+
+  // ⏳ LÊN LỊCH TƯƠNG LAI: KÍCH HOẠT HỆ THỐNG ĐẾM NGƯỢC BÁO THỨC TRÊN APP
   void _startWebAlarmSystem(List<ReminderItem> reminders) {
     for (var timer in _reminderTimers) {
       timer.cancel();
@@ -57,28 +101,23 @@ class _ReminderListPageState extends State<ReminderListPage> {
           final int hour = int.parse(parts[0]);
           final int minute = int.parse(parts[1]);
 
-          var scheduledDate =
-              DateTime(now.year, now.month, now.day, hour, minute, 0);
+          var scheduledDate = DateTime(now.year, now.month, now.day, hour, minute, 0);
 
           if (hour == now.hour && minute == now.minute) {
-            print(
-                "⏰ [Báo thức] Phát hiện nhắc nhở [${item.title}] trùng giờ phút hiện tại. Kích hoạt hiển thị!");
-
+            print("⏰ [Báo thức] Khung giờ trùng hiện tại. Kích hoạt hiển thị!");
             Timer(const Duration(milliseconds: 500), () {
-              _showAlarmDialog(item); // 🟢 Sửa: Truyền cả object item vào dialog
+              _showAlarmDialog(item);
             });
-
             scheduledDate = scheduledDate.add(const Duration(days: 1));
           } else if (scheduledDate.isBefore(now)) {
             scheduledDate = scheduledDate.add(const Duration(days: 1));
           }
 
           final duration = scheduledDate.difference(now);
-          print(
-              "⏳ Nhắc nhở [${item.title}] đã được lên lịch. Sẽ nổ tiếp theo sau: ${duration.inMinutes} minutes (${duration.inSeconds} seconds)");
+          print("⏳ Nhắc nhở [${item.title}] đã được lên lịch. Sẽ nổ sau: ${duration.inMinutes} phút");
 
           final timer = Timer(duration, () {
-            _showAlarmDialog(item); // 🟢 Sửa: Truyền cả object item vào dialog
+            _showAlarmDialog(item);
             _startWebAlarmSystem(reminders);
           });
 
@@ -90,8 +129,8 @@ class _ReminderListPageState extends State<ReminderListPage> {
     }
   }
 
-  // 🟢 THÊM HÀM GỌI API GHI NHẬT KÝ VÀO BẢNG MEDICATION_LOGS
-  Future<void> _sendMedicationLog(int reminderId) async {
+  // 🎯 GỬI NHẬT KÝ UỐNG THUỐC (HỖ TRỢ CẢ 'TAKEN' VÀ 'MISSED' - IN CONSOLE TRỰC QUAN)
+  Future<void> _sendMedicationLog(int reminderId, {required String status, bool isAuto = false}) async {
     try {
       final response = await http.post(
         Uri.parse("$baseUrl/logs/log-intake"),
@@ -99,31 +138,38 @@ class _ReminderListPageState extends State<ReminderListPage> {
         body: json.encode({
           "user_id": widget.user.id,
           "reminder_id": reminderId,
-          "status": "taken", // Trạng thái 'taken' giúp backend tính điểm tuân thủ
-          "notes": "Người dùng xác nhận hành động từ pop-up thông báo trên App"
+          "status": status, // 'taken' hoặc 'missed'
+          "notes": isAuto 
+              ? "Hệ thống tự động ghi nhận Bỏ lỡ (missed) do người dùng không bật app đúng giờ" 
+              : "Người dùng chủ động xác nhận Đã thực hiện (taken) từ màn hình App"
         }),
       );
 
       if (response.statusCode == 201) {
         final Map<String, dynamic> resData = json.decode(utf8.decode(response.bodyBytes));
         if (resData['success'] == true) {
-          print("🎯 THÀNH CÔNG: Đã lưu bản ghi lịch sử vào bảng medication_logs (Log ID: ${resData['data']['log_id']})");
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('🎉 Hệ thống đã ghi nhận lịch sử uống thuốc thực tế!'))
-            );
+          // 💻 ĐOẠN IN RA CONSOLE THEO YÊU CẦU CỦA BẠN
+          if (status == "taken") {
+            print("🎯 [CONSOLE LOG] Cập nhật trạng thái thành công: [TAKEN] cho reminder_id: $reminderId");
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('🎉 Hệ thống đã ghi nhận lịch sử uống thuốc thực tế!'))
+              );
+            }
+          } else if (status == "missed") {
+            print("🔴 [CONSOLE LOG] Cập nhật trạng thái thành công: [MISSED] cho reminder_id: $reminderId");
           }
         }
       } else {
-        print("❌ LỖI KẾT NỐI API: Mã lỗi ${response.statusCode}");
+        print("❌ API phản hồi code lỗi: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ LỖI HỆ THỐNG KHI GỬI LOG: $e");
+      print("❌ LỖI HỆ THỐNG KHI GỬI LOG ($status): $e");
     }
   }
 
-  // 🖥️ Hàm hiển thị AlertDialog báo thức ngay tại màn hình danh sách
-  void _showAlarmDialog(ReminderItem item) async { // 🟢 Sửa tham số nhận vào cả Object ReminderItem
+  // 🖥️ GIAO DIỆN POP-UP BÁO THỨC ĐẾN GIỜ NỔ CHUÔNG
+  void _showAlarmDialog(ReminderItem item) async {
     if (!mounted) return;
 
     try {
@@ -138,49 +184,83 @@ class _ReminderListPageState extends State<ReminderListPage> {
       barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.alarm, color: Colors.cyan, size: 30),
-              SizedBox(width: 10),
-              Text('⏰ GIỜ BÁO THỨC!',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 12,
+          titlePadding: const EdgeInsets.all(0),
+          title: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: const BoxDecoration(
+              color: Colors.redAccent,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.alarm_on, color: Colors.white, size: 28),
+                SizedBox(width: 12),
+                Text(
+                  'ĐẾN GIỜ UỐNG THUỐC!',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ],
+            ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(item.title,
-                  style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
-              const SizedBox(height: 8),
-              Text("Liều lượng: ${item.dosage}",
-                  style: const TextStyle(fontSize: 16, color: Colors.blueGrey)),
+              const Text(
+                "Hệ thống phát hiện đã đến lịch hẹn y tế. Vui lòng sử dụng thuốc đúng liều lượng:",
+                style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.medication, color: Colors.blueGrey, size: 24),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      item.title,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Icon(Icons.assignment_turned_in, color: Colors.blueGrey, size: 24),
+                  const SizedBox(width: 10),
+                  Text("Liều lượng: ", style: TextStyle(fontSize: 15, color: Colors.grey[700])),
+                  Text(item.dosage, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.cyan)),
+                ],
+              ),
             ],
           ),
+          actionsPadding: const EdgeInsets.only(bottom: 20, right: 16, left: 16),
           actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyan[400],
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.cyan[400],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 2,
+                ),
+                onPressed: () async {
+                  await _audioPlayer.stop();
+                  if (mounted) Navigator.of(ctx).pop();
+                  
+                  // Gửi log thủ công trạng thái 'taken'
+                  await _sendMedicationLog(item.id, status: "taken");
+                },
+                child: const Text('Xác nhận đã thực hiện', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
-              onPressed: () async {
-                // 1. Tắt chuông báo thức ngay lập tức
-                await _audioPlayer.stop();
-                
-                // 2. Tắt màn hình thông báo Pop-up
-                if (mounted) Navigator.of(ctx).pop();
-
-                // 3. 🟢 KÍCH HOẠT: Gọi API bắn dữ liệu vào MySQL ngay sau khi nhấn nút
-                await _sendMedicationLog(item.id);
-              },
-              child: const Text('Đã thực hiện',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -193,20 +273,21 @@ class _ReminderListPageState extends State<ReminderListPage> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final response = await http
-          .get(Uri.parse("$baseUrl/reminders/user/${widget.user.id}"));
+      final response = await http.get(Uri.parse("$baseUrl/reminders/user/${widget.user.id}"));
       if (response.statusCode == 200) {
-        final Map<String, dynamic> decodedData =
-            json.decode(utf8.decode(response.bodyBytes));
+        final Map<String, dynamic> decodedData = json.decode(utf8.decode(response.bodyBytes));
         if (decodedData['success'] == true) {
           final List<dynamic> listData = decodedData['data'];
           if (mounted) {
             setState(() {
-              _reminders =
-                  listData.map((item) => ReminderItem.fromJson(item)).toList();
+              _reminders = listData.map((item) => ReminderItem.fromJson(item)).toList();
               _isLoading = false;
             });
 
+            // 1. Quét quá khứ tìm lịch bỏ lỡ (In console: MISSED)
+            _checkAndLogMissedReminders(_reminders);
+
+            // 2. Lên lịch tương lai kích hoạt Timer
             _startWebAlarmSystem(_reminders);
           }
         }
@@ -220,12 +301,10 @@ class _ReminderListPageState extends State<ReminderListPage> {
   // API 2: Xóa mềm nhắc nhở
   Future<void> _deleteReminder(int reminderId) async {
     try {
-      final response =
-          await http.delete(Uri.parse("$baseUrl/reminders/delete/$reminderId"));
+      final response = await http.delete(Uri.parse("$baseUrl/reminders/delete/$reminderId"));
       if (response.statusCode == 200) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Đã hủy bỏ lịch nhắc nhở thành công!')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã hủy bỏ lịch nhắc nhở thành công!')));
         }
         _fetchReminders();
       }
@@ -245,16 +324,13 @@ class _ReminderListPageState extends State<ReminderListPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Nhắc nhở',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Nhắc nhở', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : _reminders.isEmpty
-              ? const Center(
-                  child: Text("Chưa có lịch nhắc nhở nào",
-                      style: TextStyle(color: Colors.white, fontSize: 16)))
+              ? const Center(child: Text("Chưa có lịch nhắc nhở nào", style: TextStyle(color: Colors.white, fontSize: 16)))
               : ListView.builder(
                   padding: const EdgeInsets.all(16.0),
                   itemCount: _reminders.length,
@@ -262,8 +338,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
                     final item = _reminders[index];
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16.0),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.0)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
@@ -273,25 +348,20 @@ class _ReminderListPageState extends State<ReminderListPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text("Nội dung: ${item.title}",
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16)),
+                                  Text("Nội dung: ${item.title}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                   const SizedBox(height: 4),
                                   Text("Tên thuốc: ${item.title}"),
                                   const SizedBox(height: 4),
                                   Text("Liều lượng: ${item.dosage}"),
                                   const SizedBox(height: 4),
-                                  Text(
-                                      "Khung giờ: ${item.reminderTime.substring(0, 5).replaceAll(':', ' giờ ')} phút"),
+                                  Text("Khung giờ: ${item.reminderTime.substring(0, 5).replaceAll(':', ' giờ ')} phút"),
                                 ],
                               ),
                             ),
                             Row(
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.edit,
-                                      color: Colors.green),
+                                  icon: const Icon(Icons.edit, color: Colors.green),
                                   onPressed: () async {
                                     final result = await Navigator.push(
                                       context,
@@ -308,8 +378,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
                                   },
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
+                                  icon: const Icon(Icons.delete, color: Colors.red),
                                   onPressed: () => _deleteReminder(item.id),
                                 ),
                               ],
