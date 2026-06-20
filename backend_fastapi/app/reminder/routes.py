@@ -1,6 +1,7 @@
-from datetime import datetime, time # 🟢 ĐÃ SỬA: Import trực tiếp các hàm xử lý thời gian tránh lỗi Attribute
+from datetime import datetime, time, timedelta # 🟢 ĐÃ SỬA: Import trực tiếp các hàm xử lý thời gian tránh lỗi Attribute
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.reminder.models import MedicationLog, Reminder
@@ -215,51 +216,88 @@ async def calculate_user_adherence(
             detail="Ngày bắt đầu không thể lớn hơn ngày kết thúc."
         )
         
-    # Đếm số lịch nhắc đang hoạt động của user (loại bỏ lịch đã xóa mềm)
+    # 1. Lấy số lượng lịch nhắc hiện tại của User
     active_reminders_count = db.query(Reminder).filter(
         Reminder.user_id == payload.user_id,
         Reminder.is_active == 1,
         Reminder.is_deleted == 0
     ).count()
     
-    # Tính tổng số ngày được chọn lọc
     total_days = (payload.end_date - payload.start_date).days + 1
-    total_scheduled = active_reminders_count * total_days
 
-    # 🟢 ĐÃ SỬA: Sử dụng trực tiếp hàm combine và time từ datetime đã sửa đổi import ở đầu file
-    # Sửa từ combine(...) thành datetime.combine(...)
+    if active_reminders_count == 0 or total_days == 0:
+        return schemas.AdherenceApiResponse(
+            success=True,
+            message="Chưa cấu hình lịch nhắc.",
+            data=schemas.AdherenceDataResponse(
+                user_id=payload.user_id,
+                total_scheduled=total_days,
+                total_taken=0,
+                adherence_rate=0.0,
+                status_message="Bạn chưa thiết lập lịch nhắc uống thuốc nào.",
+                days_details=[] # Cần cập nhật schema Pydantic để có thêm trường này nếu muốn strict
+            )
+        )
+
     start_datetime = datetime.combine(payload.start_date, time.min)
     end_datetime = datetime.combine(payload.end_date, time.max)
 
-    # Đếm tổng số bản ghi thực tế người bệnh đã bấm "Đã uống" (taken)
-    total_taken = db.query(MedicationLog).filter(
+    # 2. Lấy số log đã uống gom nhóm theo ngày
+    daily_taken_logs = db.query(
+        func.date(MedicationLog.logged_at).label("log_date"),
+        func.count(MedicationLog.id).label("taken_count")
+    ).filter(
         MedicationLog.user_id == payload.user_id,
         MedicationLog.status == "taken",
         MedicationLog.logged_at >= start_datetime,
         MedicationLog.logged_at <= end_datetime
-    ).count()
-    
-    if total_scheduled == 0:
-        adherence_rate = 0.0
-    else:
-        adherence_rate = round((total_taken / total_scheduled) * 100, 2)
+    ).group_by(
+        func.date(MedicationLog.logged_at)
+    ).all()
+
+    # Chuyển dữ liệu DB thành dạng Dict để tra cứu cho nhanh: {"2026-06-20": 2}
+    logs_dict = {str(log.log_date): log.taken_count for log in daily_taken_logs}
+
+    # 3. VÒNG LẶP QUÉT TỪNG NGÀY KHẮT KHE
+    detailed_days = []
+    successful_days_count = 0
+
+    for i in range(total_days):
+        current_date = payload.start_date + timedelta(days=i)
+        date_str = str(current_date)
         
+        # Số cử thực tế uống trong ngày hôm đó
+        taken_count = logs_dict.get(date_str, 0)
+        
+        # CHƯA HOÀN THÀNH HẾT THÌ CHƯA ĐÁNH DẤU (is_completed = False)
+        is_completed = taken_count >= active_reminders_count
+        
+        if is_completed:
+            successful_days_count += 1
+            
+        detailed_days.append({
+            "date": date_str,
+            "taken_count": taken_count,
+            "required_count": active_reminders_count,
+            "is_completed": is_completed  # <--- Biến quyết định cho Flutter
+        })
+
+    adherence_rate = round((successful_days_count / total_days) * 100, 2)
     is_compliant = adherence_rate >= 80.0
-    status_msg = "Tuyệt vời! Bạn tuân thủ điều trị rất tốt." if is_compliant else "Nhắc nhở: Bạn đang uống thiếu liều, hãy chú ý hơn nhé!"
+    status_msg = "Tuyệt vời! Bạn tuân thủ rất tốt." if is_compliant else "Hãy chú ý uống thuốc đầy đủ hơn nhé!"
 
-    return schemas.AdherenceApiResponse(
-        success=True,
-        message="Tính toán tỉ lệ tuân thủ thành công.",
-        data=schemas.AdherenceDataResponse(
-            user_id=payload.user_id,
-            total_scheduled=total_scheduled,
-            total_taken=total_taken,
-            adherence_rate=adherence_rate,
-            status_message=status_msg
-        )
-    )
-
-
+    return {
+        "success": True,
+        "message": "Tính toán tỉ lệ tuân thủ chi tiết thành công.",
+        "data": {
+            "user_id": payload.user_id,
+            "total_scheduled": total_days,
+            "total_taken": successful_days_count,
+            "adherence_rate": adherence_rate,
+            "status_message": status_msg,
+            "days_details": detailed_days  # <--- Gửi mảng này về cho Flutter xử lý giao diện hiển thị
+        }
+    }
 # --- API 8: TẠO NHANH LOG QUA ĐƯỜNG DẪN GỐC ---
 @router.post("/", response_model=schemas.CommonApiResponse, status_code=status.HTTP_201_CREATED)
 async def create_log(payload: schemas.MedicationLogRequest, db: Session = Depends(get_db)):
