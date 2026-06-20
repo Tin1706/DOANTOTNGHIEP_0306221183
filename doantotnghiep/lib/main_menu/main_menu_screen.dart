@@ -65,7 +65,7 @@ class MainMenuScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         // 🟢 ĐÃ FIX LỖI DÒNG 54: Bỏ const và truyền 'user' vào chuẩn bài
-                        builder: (context) => ReportScreen(),
+                        builder: (context) => ReportScreen(user: user,),
                       ),
                     );
                   },

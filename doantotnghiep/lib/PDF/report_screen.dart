@@ -1,8 +1,11 @@
 import 'package:doantotnghiep/PDF/api_services.dart';
+import 'package:doantotnghiep/graph/user_model.dart';
 import 'package:flutter/material.dart';
 
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({super.key});
+  final UserModel user;
+
+  const ReportScreen({super.key, required this.user});
 
   @override
   State<ReportScreen> createState() => _ReportScreenState();
@@ -11,17 +14,14 @@ class ReportScreen extends StatefulWidget {
 class _ReportScreenState extends State<ReportScreen> {
   String _displayResult = "Chưa có dữ liệu (Bấm nút để lấy)";
 
-  // Hàm gọi API và gán kết quả vào biến hiển thị
   void _checkAdherenceRateOnly() async {
     setState(() {
       _displayResult = "⏳ Đang kết nối backend...";
     });
 
-    // 📅 1. LẤY THỜI GIAN THỰC TẾ
     final now = DateTime.now();
-    final sevenDaysLater = now.add(const Duration(days: 7));
+    final thirtyDaysLater = now.add(const Duration(days: 30));
 
-    // 🛠️ 2. ĐỊNH DẠNG ĐỊNH DẠNG CHUỖI YYYY-MM-DD ĐỂ GỬI LÊN BACKEND
     String formatDate(DateTime date) {
       String year = date.year.toString();
       String month = date.month.toString().padLeft(2, '0');
@@ -29,39 +29,71 @@ class _ReportScreenState extends State<ReportScreen> {
       return "$year-$month-$day";
     }
 
-    final String startDateStr = formatDate(now); // Định dạng ngày hôm nay
-    final String endDateStr =
-        formatDate(sevenDaysLater); // Định dạng 7 ngày sau
-
+    final String startDateStr = formatDate(now);
+    final String endDateStr = formatDate(thirtyDaysLater);
     print(
         "⏳ Đang quét tỉ lệ tuân thủ từ ngày $startDateStr đến ngày $endDateStr...");
 
-    // 🚀 3. GỌI API VỚI NGÀY TỰ ĐỘNG
-    final data = await ApiService.calculateAdherence(
-      userId: 1,
-      startDate: startDateStr, // Truyền ngày hôm nay (Ví dụ: "2026-06-20")
-      endDate: endDateStr, // Truyền 7 ngày sau (Ví dụ: "2026-06-27")
+    final response = await ApiService.calculateAdherence(
+      userId: widget.user.id,
+      startDate: startDateStr,
+      endDate: endDateStr,
     );
 
-    if (data != null) {
-      var rate = data['adherence_rate'];
+    // 🚀 KIỂM TRA VÀ TRÍCH XUẤT ĐÚNG CẤU TRÚC JSON CỦA FASTAPI
+    if (response != null && response['success'] == true) {
+      // Vì FastAPI bọc các trường vào trong object 'data'
+      var nestedData = response['data'];
 
-      print("==================================================");
-      print("🎯 TỈ LỆ TUÂN THỦ TỪ $startDateStr ĐẾN $endDateStr: $rate%");
-      print("==================================================");
+      if (nestedData != null) {
+        var rate = nestedData['adherence_rate'] ?? 0;
+        int totalScheduled = nestedData['total_scheduled'] ?? 0;
+        int totalTaken = nestedData['total_taken'] ?? 0;
 
-      if (mounted) {
-        setState(() {
-          _displayResult = "🎯 TỈ LỆ TUÂN THỦ UỐNG THUỐC THÀNH CÔNG: $rate%";
-        });
+        // Tính số lần chưa uống (Bỏ lỡ) trực tiếp bằng Tổng lịch trừ đi Đã uống
+        int totalMissed = totalScheduled - totalTaken;
+        if (totalMissed < 0) totalMissed = 0; // Đề phòng trường hợp log lỗi
+
+        // 📝 LOG RA CONSOLE
+        print("==================================================");
+        print(
+            "🎯 THÔNG SỐ BÁO CÁO CỦA USER ${widget.user.id}: ${widget.user.name}");
+        print("⏰ Khoảng thời gian: $startDateStr -> $endDateStr");
+        print("📊 Tổng số lịch nhắc hẹn: $totalScheduled lần");
+        print("✅ Số lần ĐÃ UỐNG: $totalTaken lần");
+        print("❌ Số lần CHƯA UỐNG (Bỏ lỡ): $totalMissed lần");
+        print("🎯 TỈ LỆ TUÂN THỦ: $rate%");
+        print("==================================================");
+
+        if (mounted) {
+          setState(() {
+            // HIỂN THỊ TRỰC QUAN LÊN GIAO DIỆN FLUTTER
+            _displayResult = "🎯 TỈ LỆ TUÂN THỦ: $rate%\n\n"
+                "✅ Đã uống: $totalTaken lần\n"
+                "❌ Chưa uống: $totalMissed lần\n"
+                "📊 Tổng lịch: $totalScheduled lần";
+          });
+        }
+      } else {
+        _showError("Không tìm thấy thuộc tính 'data' trong phản hồi!");
       }
     } else {
-      print("❌ Lỗi: Không nhận được dữ liệu từ Backend. Hãy kiểm tra server!");
-      if (mounted) {
-        setState(() {
-          _displayResult = "❌ Lỗi: Không nhận được dữ liệu từ Backend!";
-        });
-      }
+      String errMsg = response != null
+          ? (response['message'] ??
+              response['detail'] ??
+              "Lỗi không xác định từ Backend.")
+          : "Không nhận được dữ liệu từ Backend.";
+      print("❌ Lỗi: $errMsg");
+      _showError(errMsg);
+    }
+  }
+
+  // Hàm phụ để cập nhật giao diện khi lỗi
+  void _showError(String message) {
+    if (mounted) {
+      setState(() {
+        _displayResult = "❌ Lỗi: $message";
+      });
     }
   }
 
@@ -73,23 +105,40 @@ class _ReportScreenState extends State<ReportScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Text("Đang xem báo cáo của: ${widget.user.name}",
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text("User ID: ${widget.user.id}",
+                style: const TextStyle(fontSize: 13, color: Colors.grey)),
+
+            const SizedBox(height: 20),
             ElevatedButton(
-              onPressed:
-                  _checkAdherenceRateOnly, // Bấm nút để kích hoạt lệnh print và hiển thị
+              onPressed: _checkAdherenceRateOnly,
               style:
                   ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
               child: const Text("Bấm để PRINT tỉ lệ % ra Console & Giao diện",
                   style: TextStyle(fontSize: 16)),
             ),
             const SizedBox(height: 30),
-            // Dòng chữ hiển thị kết quả ngay trên màn hình dưới nút bấm
-            Text(
-              _displayResult,
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey),
-              textAlign: TextAlign.center,
+
+            // Khung hiển thị kết quả trực quan hơn một chút
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.blueGrey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _displayResult,
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey,
+                    height: 1.5), // Giúp giãn dòng chuỗi kết quả
+                textAlign: TextAlign
+                    .start, // Đổi thành start để các dòng chữ căn lề đẹp hơn
+              ),
             ),
           ],
         ),

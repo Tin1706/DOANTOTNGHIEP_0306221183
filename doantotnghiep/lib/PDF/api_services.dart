@@ -43,6 +43,7 @@ class ApiService {
   }
 
   // 2. API Gọi Backend tính tỉ lệ tuân thủ thực tế
+  // 2. API Gọi Backend tính tỉ lệ tuân thủ thực tế
   static Future<Map<String, dynamic>?> calculateAdherence({
     required int userId,
     required String startDate,
@@ -50,7 +51,6 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        // 🟢 Đã sửa: Đường dẫn chuẩn xác kết nối trực tiếp đến Controller xử lý dữ liệu
         Uri.parse('$baseUrl/calculate'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
@@ -60,14 +60,16 @@ class ApiService {
         }),
       );
 
+      // 🎯 SỬA ĐOẠN KIỂM TRA ĐẦU RA NÀY:
       if (response.statusCode == 200) {
-        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-        if (decoded['success'] == true) {
-          return decoded['data']; // Trả về Map chứa 'adherence_rate'
-        }
+        // Trả về toàn bộ Map gốc ban đầu (bao gồm cả 'success' và 'data')
+        return jsonDecode(utf8.decode(response.bodyBytes))
+            as Map<String, dynamic>;
+      } else {
+        // Nếu lỗi (400, 422, 500...), cũng cố gắng trả về body để report_screen đọc được trường 'detail'
+        return jsonDecode(utf8.decode(response.bodyBytes))
+            as Map<String, dynamic>;
       }
-      print("❌ Lỗi API tính tỉ lệ, Mã lỗi: ${response.statusCode}");
-      return null;
     } catch (e) {
       print("❌ Lỗi hệ thống khi gọi API tính tỉ lệ: $e");
       return null;
