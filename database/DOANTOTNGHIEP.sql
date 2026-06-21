@@ -116,7 +116,7 @@ CREATE TABLE `health_metrics_logs` (
   PRIMARY KEY (`id`),
   KEY `fk_blood_sugar_user` (`user_id`),
   CONSTRAINT `fk_blood_sugar_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -125,7 +125,6 @@ CREATE TABLE `health_metrics_logs` (
 
 LOCK TABLES `health_metrics_logs` WRITE;
 /*!40000 ALTER TABLE `health_metrics_logs` DISABLE KEYS */;
-INSERT INTO `health_metrics_logs` VALUES (1,1,190,'mg/dL',160,80,110,'2026-06-03 07:30:30'),(2,1,65,'mg/dL',120,50,50,'2026-06-03 07:37:03'),(3,7,125,'mg/dL',110,80,70,'2026-06-03 08:07:36'),(4,8,190,'mg/dL',160,50,70,'2026-06-03 08:11:08'),(5,9,210,'mg/dL',50,50,70,'2026-06-03 09:13:15'),(7,11,210,'mg/dL',160,90,70,'2026-06-04 02:35:40');
 /*!40000 ALTER TABLE `health_metrics_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -156,41 +155,6 @@ INSERT INTO `medication_dictionary` VALUES (1,'Micronase (Glyburide)','Thuốc v
 UNLOCK TABLES;
 
 --
--- Table structure for table `medication_logs`
---
-
-DROP TABLE IF EXISTS `medication_logs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `medication_logs` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `medication_def_id` int NOT NULL,
-  `reminder_id` int DEFAULT NULL,
-  `dosage` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'taken',
-  `notes` varchar(300) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `logged_at` datetime NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `fk_medication_user` (`user_id`),
-  KEY `fk_medication_def` (`medication_def_id`),
-  KEY `fk_medication_logs_reminders` (`reminder_id`),
-  CONSTRAINT `fk_medication_def` FOREIGN KEY (`medication_def_id`) REFERENCES `medication_dictionary` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_medication_logs_reminders` FOREIGN KEY (`reminder_id`) REFERENCES `reminders` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_medication_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `medication_logs`
---
-
-LOCK TABLES `medication_logs` WRITE;
-/*!40000 ALTER TABLE `medication_logs` DISABLE KEYS */;
-/*!40000 ALTER TABLE `medication_logs` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `otp_codes`
 --
 
@@ -201,13 +165,14 @@ CREATE TABLE `otp_codes` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
   `otp_code` varchar(6) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `is_used` tinyint DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `expires_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_otp_users` (`user_id`),
   CONSTRAINT `fk_otp_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -216,7 +181,6 @@ CREATE TABLE `otp_codes` (
 
 LOCK TABLES `otp_codes` WRITE;
 /*!40000 ALTER TABLE `otp_codes` DISABLE KEYS */;
-INSERT INTO `otp_codes` VALUES (1,1,'456945',1,'2026-06-03 07:22:41','2026-06-03 07:27:41'),(2,8,'964811',0,'2026-06-03 08:20:55','2026-06-03 08:25:54'),(3,8,'961574',0,'2026-06-03 08:21:13','2026-06-03 08:26:13'),(4,8,'666946',0,'2026-06-03 08:25:21','2026-06-03 08:30:21'),(5,8,'900435',0,'2026-06-03 08:30:39','2026-06-03 08:35:39'),(6,8,'673779',0,'2026-06-03 08:32:19','2026-06-03 08:37:19'),(7,8,'712411',0,'2026-06-03 08:34:04','2026-06-03 08:39:04'),(8,8,'673487',0,'2026-06-03 08:34:51','2026-06-03 08:39:51'),(9,8,'865903',1,'2026-06-03 08:41:14','2026-06-03 08:46:14'),(10,7,'797494',1,'2026-06-03 08:43:31','2026-06-03 08:48:31'),(11,7,'694737',1,'2026-06-03 09:02:12','2026-06-03 09:07:12'),(12,7,'846657',1,'2026-06-03 09:35:51','2026-06-03 09:40:51'),(13,7,'985365',1,'2026-06-03 09:36:51','2026-06-03 09:41:51'),(14,7,'808543',1,'2026-06-03 09:37:37','2026-06-03 09:42:37'),(15,7,'126778',1,'2026-06-03 09:39:37','2026-06-03 09:44:37');
 /*!40000 ALTER TABLE `otp_codes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -228,12 +192,15 @@ DROP TABLE IF EXISTS `patient_conditions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `patient_conditions` (
-  `patient_profile_id` int NOT NULL,
-  `condition_id` int NOT NULL,
-  PRIMARY KEY (`patient_profile_id`,`condition_id`),
-  KEY `fk_patient_condition_def` (`condition_id`),
-  CONSTRAINT `fk_patient_condition_def` FOREIGN KEY (`condition_id`) REFERENCES `conditions_dictionary` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_patient_condition_profile` FOREIGN KEY (`patient_profile_id`) REFERENCES `patient_profiles` (`id`) ON DELETE CASCADE
+  `id` int NOT NULL AUTO_INCREMENT,
+  `patient_profile_id` int DEFAULT NULL,
+  `condition_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `patient_profile_id` (`patient_profile_id`),
+  KEY `condition_id` (`condition_id`),
+  KEY `ix_patient_conditions_id` (`id`),
+  CONSTRAINT `patient_conditions_ibfk_1` FOREIGN KEY (`patient_profile_id`) REFERENCES `patient_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `patient_conditions_ibfk_2` FOREIGN KEY (`condition_id`) REFERENCES `conditions_dictionary` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -243,7 +210,6 @@ CREATE TABLE `patient_conditions` (
 
 LOCK TABLES `patient_conditions` WRITE;
 /*!40000 ALTER TABLE `patient_conditions` DISABLE KEYS */;
-INSERT INTO `patient_conditions` VALUES (4,6),(6,6),(2,7),(4,7),(6,7),(2,8),(3,8),(1,9),(1,13),(3,13),(6,13),(1,17),(2,17),(6,17);
 /*!40000 ALTER TABLE `patient_conditions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -263,10 +229,12 @@ CREATE TABLE `patient_profiles` (
   `weight` int NOT NULL,
   `height` int NOT NULL,
   `allergies` text COLLATE utf8mb4_unicode_ci,
+  `pre_existing_conditions` text COLLATE utf8mb4_unicode_ci,
+  `symptoms` text COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`),
   KEY `fk_profiles_user` (`user_id`),
   CONSTRAINT `fk_profiles_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -275,7 +243,6 @@ CREATE TABLE `patient_profiles` (
 
 LOCK TABLES `patient_profiles` WRITE;
 /*!40000 ALTER TABLE `patient_profiles` DISABLE KEYS */;
-INSERT INTO `patient_profiles` VALUES (1,1,26,70,180,80,178,NULL),(2,7,26,70,180,80,178,'dị ứng với thời tiết'),(3,8,26,70,180,70,178,NULL),(4,9,26,70,180,80,178,NULL),(6,11,26,70,180,60,167,NULL);
 /*!40000 ALTER TABLE `patient_profiles` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -287,13 +254,15 @@ DROP TABLE IF EXISTS `patient_symptoms`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `patient_symptoms` (
-  `patient_profile_id` int NOT NULL,
-  `symptom_id` int NOT NULL,
-  `recorded_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`patient_profile_id`,`symptom_id`),
-  KEY `fk_patient_symptom_def` (`symptom_id`),
-  CONSTRAINT `fk_patient_symptom_def` FOREIGN KEY (`symptom_id`) REFERENCES `symptoms_dictionary` (`id`) ON DELETE RESTRICT,
-  CONSTRAINT `fk_patient_symptom_profile` FOREIGN KEY (`patient_profile_id`) REFERENCES `patient_profiles` (`id`) ON DELETE CASCADE
+  `id` int NOT NULL AUTO_INCREMENT,
+  `patient_profile_id` int DEFAULT NULL,
+  `symptom_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `patient_profile_id` (`patient_profile_id`),
+  KEY `symptom_id` (`symptom_id`),
+  KEY `ix_patient_symptoms_id` (`id`),
+  CONSTRAINT `patient_symptoms_ibfk_1` FOREIGN KEY (`patient_profile_id`) REFERENCES `patient_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `patient_symptoms_ibfk_2` FOREIGN KEY (`symptom_id`) REFERENCES `symptoms_dictionary` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -303,35 +272,7 @@ CREATE TABLE `patient_symptoms` (
 
 LOCK TABLES `patient_symptoms` WRITE;
 /*!40000 ALTER TABLE `patient_symptoms` DISABLE KEYS */;
-INSERT INTO `patient_symptoms` VALUES (3,13,'2026-06-03 08:10:51'),(3,18,'2026-06-03 08:10:51'),(4,13,'2026-06-03 09:12:52'),(4,15,'2026-06-03 09:12:52'),(6,1,'2026-06-04 02:35:18'),(6,3,'2026-06-04 02:35:18');
 /*!40000 ALTER TABLE `patient_symptoms` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `reminder_logs`
---
-
-DROP TABLE IF EXISTS `reminder_logs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `reminder_logs` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `reminder_id` int NOT NULL,
-  `is_consume_medicine` tinyint DEFAULT '0',
-  `status_updated_at` datetime NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `fk_logs_reminder_parent` (`reminder_id`),
-  CONSTRAINT `fk_logs_reminder_parent` FOREIGN KEY (`reminder_id`) REFERENCES `reminders` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `reminder_logs`
---
-
-LOCK TABLES `reminder_logs` WRITE;
-/*!40000 ALTER TABLE `reminder_logs` DISABLE KEYS */;
-/*!40000 ALTER TABLE `reminder_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -344,7 +285,7 @@ DROP TABLE IF EXISTS `reminders`;
 CREATE TABLE `reminders` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
-  `medication_dictionary_id` int NOT NULL,
+  `medication_dictionary_id` int DEFAULT NULL,
   `title` varchar(300) COLLATE utf8mb4_unicode_ci NOT NULL,
   `dosage` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `reminder_time` time NOT NULL,
@@ -408,7 +349,7 @@ CREATE TABLE `users` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -417,7 +358,6 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'tin1234@gmail.com','2002-06-17 00:00:00','$2b$12$qdTi3P0Mpu8HwKxtDw4lQeJ.6LksOPs35EE8AhrZ45JG1flZgA0gK','Huỳnh Trọng Tín','2026-06-03 07:21:48'),(2,'nva1234@gmail.com','2000-01-01 00:00:00','$2b$12$e8U5dVly13CtzKWUKzXkkOn30pIqE1NcKEzKf5VgkpmBYYttNFXKK','Nguyễn Văn A','2026-06-03 07:36:03'),(3,'tva1234@gmail.com','2000-01-01 00:00:00','$2b$12$IYjIHgsLKVfPSNXy4ohbi.OCVBA/9.temC.ZxM.BFeVz3cOkuPQRS','Trần Văn A','2026-06-03 07:40:14'),(4,'tvb1234@gmail.com','2000-01-01 00:00:00','$2b$12$SDsiVYutqI01eBuZMta1AeuiPitUZ9Kmfdx3S7SvPDzhz8y7Hmicu','Trần Văn B','2026-06-03 07:55:38'),(5,'tvc1234@gmail.com','2000-01-01 00:00:00','$2b$12$NdvaJ5qmPbH.fU9VGHd4XOsF/DV68NoHB8UuMWyXVQrQdmiaAGUOy','Trần Văn C','2026-06-03 07:56:06'),(6,'nvb1234@gmail.com','2000-01-01 00:00:00','$2b$12$SzxRVx6SFhzr1DgKCvvCB.E7W4JH.M1gZMgOZvw6tZH2s4QV5HHS2','Nguyễn Văn B','2026-06-03 08:00:29'),(7,'httin1234@gmail.com','2000-01-01 00:00:00','$2b$12$5faoIfNrM.FVRmx6mf7ffuqR5JjuahRQ.pKLrmrhOp4OEwPfi3YsK','Huỳnh Trọng Tín','2026-06-03 08:06:16'),(8,'nvc1234@gmail.com','2000-01-01 00:00:00','$2b$12$d10QnmjnYGyhSusVetXTI./eqpwtF1KRtpLsacE.aMVWilDSNy9qa','Nguyễn Văn C','2026-06-03 08:10:30'),(9,'tvd1234@gmail.com','2000-01-01 00:00:00','$2b$12$5cOLpsxil9H8me9UZ.e61eW9YtBzIIl.9AuRZrUxlgTt8OOharuxW','Trần Văn D','2026-06-03 09:12:29'),(11,'ttb1234@gmail.com','2000-01-01 00:00:00','$2b$12$unT4ccY7z073IPsX1pOGz.bICAk8yipM3m6fXtpy01LLmhLb3Rw3K','Trần Thị B','2026-06-04 02:34:51');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -430,4 +370,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-04 10:13:12
+-- Dump completed on 2026-06-22  5:06:02
