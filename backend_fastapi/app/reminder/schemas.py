@@ -62,56 +62,8 @@ class ReminderUpdateRequest(BaseModel):
     reminder_time: str
     is_active: int  
 
-
-# ==========================================
-# 📝 3. SCHEMAS NHẬT KÝ THUỐC (MedicationLog)
-# ==========================================
-
-class MedicationLogRequest(BaseModel):
-    user_id: int
-    reminder_id: int
-    status: str  
-    notes: Optional[str] = None
-
-
-class MedicationLogResponse(BaseModel):
-    id: int
-    user_id: int
-    medication_def_id: Optional[int] = None        # 🟢 Đổi thành Optional để phòng trường hợp ghi nhật ký cho nhắc nhở tự do
-    reminder_id: Optional[int] = None
-    dosage: Optional[str] = None                    # 🟢 Đổi thành Optional
-    status: str
-    notes: Optional[str] = None
-    logged_at: str  
-
-    class Config:
-        from_attributes = True
-
-
-# ==========================================
-# 🟢 4. SCHEMA PHẢN HỒI CHUNG (Common Responses)
-# ==========================================
-
 class CommonApiResponse(BaseModel):
     success: bool
     message: str
     data: Optional[dict] = None
     
-class AdherenceCalculationRequest(BaseModel):
-    user_id: int
-    start_date: date  # Ví dụ: "2026-06-01"
-    end_date: date    # Ví dụ: "2026-06-19"
-
-# Dữ liệu chi tiết trả về cho Flutter
-class AdherenceDataResponse(BaseModel):
-    user_id: int
-    total_scheduled: int   # Tổng số lần/ngày đáng lẽ phải uống
-    total_taken: int       # Số lần thực tế bấm "Đã uống"
-    adherence_rate: float  # Tỉ lệ phần trăm (float)
-    status_message: str    # "Đạt chuẩn" hoặc "Cần chú ý"
-
-# Response chuẩn hóa theo pattern của bạn
-class AdherenceApiResponse(BaseModel):
-    success: bool
-    message: str
-    data: AdherenceDataResponse

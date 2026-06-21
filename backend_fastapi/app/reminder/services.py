@@ -83,28 +83,3 @@ def delete_reminder(db: Session, reminder_id: int):
     reminder.is_deleted = 1
     db.commit()
     return True
-
-
-# ==========================================
-# 3. NHẬT KÝ SỬ DỤNG THUỐC (MedicationLogs)
-# ==========================================
-
-def create_medication_log(db: Session, user_id: int, reminder_id: int, status: str, notes: str = None):
-    """Ghi nhận log thực tế khi người dùng bấm tương tác trên màn hình thông báo"""
-    reminder = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
-    if not reminder:
-        return None
-        
-    new_log = models.MedicationLog(
-        user_id=user_id,
-        medication_def_id=reminder.medication_dictionary_id, # Sẽ tự động lưu None nếu lịch này không gắn với thuốc
-        reminder_id=reminder_id,
-        dosage=reminder.dosage,                              # Sẽ lưu None hoặc "Thực hiện đúng giờ"
-        status=status,
-        notes=notes,
-        logged_at=datetime.utcnow()
-    )
-    db.add(new_log)
-    db.commit()
-    db.refresh(new_log)
-    return new_log

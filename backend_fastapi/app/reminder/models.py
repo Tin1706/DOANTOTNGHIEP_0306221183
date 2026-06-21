@@ -38,24 +38,3 @@ class Reminder(Base):
     is_deleted = Column(TINYINT, default=0)          
 
     medication = relationship("MedicationDictionary", back_populates="reminders")
-class MedicationLog(Base):
-    __tablename__ = "medication_logs"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, nullable=False, index=True)
-    
-    # Khóa ngoại liên kết tới bảng Reminder (nếu cần truy vấn chéo)
-    reminder_id = Column(Integer, ForeignKey("reminders.id", ondelete="SET NULL"), nullable=True)
-    
-    # Lưu ID từ điển thuốc phòng trường hợp lịch nhắc nhở bị thay đổi/xóa
-    medication_def_id = Column(Integer, nullable=True)
-    
-    dosage = Column(String(255), nullable=True)
-    status = Column(String(50), nullable=False)  # 'taken' (đã uống), 'missed' (bỏ lỡ)
-    notes = Column(Text, nullable=True)
-    
-    # Tự động ghi nhận thời gian bấm nút theo giờ hệ thống
-    logged_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Thiết lập mối quan hệ để khi cần có thể gọi log.reminder nhằm lấy thông tin lịch nhắc
-    reminder = relationship("Reminder", backref="logs")

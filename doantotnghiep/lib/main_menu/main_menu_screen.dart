@@ -1,5 +1,5 @@
 import 'package:doantotnghiep/FoodAndExercise/health_features.dart';
-import 'package:doantotnghiep/PDF/report_screen.dart';
+import 'package:doantotnghiep/PDF/patient_report_screen.dart';
 import 'package:doantotnghiep/graph/graph_screen.dart';
 import 'package:doantotnghiep/health_metrics/latest_metrics_screen.dart';
 import 'package:doantotnghiep/graph/user_model.dart'; 
@@ -65,7 +65,7 @@ class MainMenuScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         // 🟢 ĐÃ FIX LỖI DÒNG 54: Bỏ const và truyền 'user' vào chuẩn bài
-                        builder: (context) => ReportScreen(user: user,),
+                        builder: (context) => PatientReportScreen(user: user),
                       ),
                     );
                   },
