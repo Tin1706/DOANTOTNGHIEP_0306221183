@@ -1,3 +1,4 @@
+import 'package:doantotnghiep/constant.dart';
 import 'package:doantotnghiep/health_metrics/health_metrics_input_screen.dart';
 import 'package:doantotnghiep/health_metrics/health_metrics_models.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,7 @@ class _LatestMetricsScreenState extends State<LatestMetricsScreen> {
   Future<void> _fetchLatestMetrics() async {
     // Thay đổi URL phù hợp với môi trường chạy (10.0.2.2 là localhost cho máy ảo Android)
     final url = Uri.parse(
-        'http://192.168.0.236:8000/api/health-metrics/latest?user_id=${widget.userId}&limit=10');
+        AppConstant.address + '/api/health-metrics/latest?user_id=${widget.userId}&limit=10');
 
     try {
       final response = await http.get(url);

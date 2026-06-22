@@ -1,4 +1,5 @@
 import 'package:doantotnghiep/auth/login_screen.dart';
+import 'package:doantotnghiep/constant.dart';
 import 'package:doantotnghiep/main_menu/update_health_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart'; // Đã thêm import Dio thành công
@@ -47,11 +48,11 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
 
       // 1. Gọi API lấy thông tin cá nhân (Cụm onboarding)
       final infoResponse =
-          await dio.get('http://192.168.0.236:8000/api/onboarding/$userId');
+          await dio.get(AppConstant.address + '/api/onboarding/$userId');
 
       // 2. Gọi API lấy chỉ số trung bình sức khỏe 7 ngày
       final avgResponse = await dio.get(
-          'http://192.168.0.236:8000/api/health-metrics/average?user_id=$userId&days=7');
+          AppConstant.address + '/api/health-metrics/average?user_id=$userId&days=7');
 
       print("🎁 DỮ LIỆU ONBOARDING CHUẨN: ${infoResponse.data}");
       print("🎁 DỮ LIỆU TRUNG BÌNH THỰC TẾ LÀ: ${avgResponse.data}");

@@ -1,14 +1,14 @@
 // auth_service.dart
 import 'package:dio/dio.dart';
+import 'package:doantotnghiep/constant.dart';
 import 'package:doantotnghiep/health_metrics/health_metrics_payload.dart';
 
 class AuthService {
   // 🌟 ĐỒNG BỘ ĐƯỜNG DẪN: Đặt địa chỉ Server gốc ở đây để khi đổi IP chỉ cần sửa đúng 1 dòng này!
-  static const String _baseUrlServer = 'http://192.168.0.236:8000';
 
   // Biến cấu hình Dio chuẩn cho toàn bộ class
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: '$_baseUrlServer/api/auth', // Gốc là http://localhost:8000/api/auth
+    baseUrl: AppConstant.address + '/api/auth', 
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
     headers: {
@@ -156,7 +156,7 @@ class AuthService {
   Future<Response> submitHealthMetrics(HealthMetricsPayload payload) async {
     try {
       final response = await _dio.post(
-        '$_baseUrlServer/api/health-metrics/submit',
+        AppConstant.address + '/api/health-metrics/submit',
         data: payload.toMap(),
       );
       return response;

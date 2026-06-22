@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:doantotnghiep/constant.dart';
 import 'package:doantotnghiep/graph/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -17,7 +18,7 @@ class ReminderListPage extends StatefulWidget {
 }
 
 class _ReminderListPageState extends State<ReminderListPage> {
-  final String baseUrl = "http://192.168.0.236:8000/api/diabetes-medications";
+  final String baseUrl = AppConstant.address + "/api/diabetes-medications";
   List<ReminderItem> _reminders = [];
   bool _isLoading = true;
   final List<Timer> _reminderTimers = [];

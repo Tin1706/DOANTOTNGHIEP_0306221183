@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:doantotnghiep/constant.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:doantotnghiep/graph/user_model.dart';
@@ -13,7 +14,7 @@ class OralMedicationPage extends StatefulWidget {
 }
 
 class _OralMedicationPageState extends State<OralMedicationPage> {
-  final String apiUrl = "http://192.168.0.236:8000/api/diabetes-medications/all";
+  final String apiUrl = AppConstant.address + "/api/diabetes-medications/all";
   List<Medication> _oralMedications = [];
   bool _isLoading = true;
 

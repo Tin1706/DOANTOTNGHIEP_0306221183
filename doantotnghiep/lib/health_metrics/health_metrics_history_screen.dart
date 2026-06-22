@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'health_metrics_input_screen.dart'; // Đảm bảo import đúng đường dẫn tới file nhập liệu
-
+import 'package:doantotnghiep/constant.dart'; // Thay đổi đường dẫn này nếu bạn đặt file constant.dart ở thư mục khác
 class HealthMetricsHistoryScreen extends StatefulWidget {
   final int userId;
 
@@ -32,7 +32,7 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
 
     try {
       // Điều chỉnh lại URL endpoint theo đúng thiết kế Router của Backend Python
-      final String apiUrl = "http://192.168.0.236:8000/api/health-metrics/history/${widget.userId}";
+      final String apiUrl = AppConstant.address + "/api/health-metrics/history/${widget.userId}";
       final response = await _dio.get(apiUrl);
 
       if (response.statusCode == 200 && response.data['success'] == true) {

@@ -1,11 +1,12 @@
 // onboarding_api_services.dart
 import 'dart:convert';
+import 'package:doantotnghiep/constant.dart';
 import 'package:http/http.dart' as http;
 
 class OnboardingApiService {
   // 🌟 ĐƯỜNG DẪN API BASELINE
   // Lưu ý: Nếu chạy trên điện thoại thật hoặc giả lập Android, hãy đổi 'localhost' thành IP mạng LAN hoặc '10.0.2.2'
-  static const String baseUrl = 'http://192.168.0.236:8000/api/onboarding';
+  static const String baseUrl = AppConstant.address + '/api/onboarding';
 
   // =========================================================================
   // 1. Hàm gửi toàn bộ dữ liệu hồ sơ lên Backend (Màn cuối gọi)

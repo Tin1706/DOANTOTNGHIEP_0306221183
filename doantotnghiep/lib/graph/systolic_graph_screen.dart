@@ -1,3 +1,4 @@
+import 'package:doantotnghiep/constant.dart';
 import 'package:doantotnghiep/graph/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -31,7 +32,7 @@ class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
 
       // 💡 LƯU Ý: Thay 'localhost' bằng IP máy tính (Ví dụ: 192.168.1.5) nếu chạy trên máy thật
       final response = await _dio.get(
-        "http://192.168.0.236:8000/api/health-metrics/latest",
+        AppConstant.address + "/api/health-metrics/latest",
         queryParameters: {
           "user_id": widget.user.id,
           "limit": 7,

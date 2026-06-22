@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:doantotnghiep/constant.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:doantotnghiep/graph/user_model.dart';
@@ -16,7 +17,7 @@ class InjectionMedicationPage extends StatefulWidget {
 
 class _InjectionMedicationPageState extends State<InjectionMedicationPage> {
   // Giữ nguyên localhost theo môi trường chạy của bác
-  final String baseUrl = "http://192.168.0.236:8000/api/diabetes-medications/all";
+  final String baseUrl = AppConstant.address + "/api/diabetes-medications/all";
   List<Medication> _injectionMedications = [];
   bool _isLoading = true;
 

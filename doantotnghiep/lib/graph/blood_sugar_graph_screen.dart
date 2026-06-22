@@ -1,3 +1,4 @@
+import 'package:doantotnghiep/constant.dart';
 import 'package:doantotnghiep/graph/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -32,7 +33,7 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
       print("======> THỰC TẾ FLUTTER GỬI USER ID LÀ: ${widget.user.id}");
 
       final response = await _dio.get(
-        "http://192.168.0.236:8000/api/health-metrics/latest",
+        AppConstant.address + "/api/health-metrics/latest",
         queryParameters: {
           "user_id": widget.user.id, // 🟢 Dùng ID của user ở đây
           "limit": 7,

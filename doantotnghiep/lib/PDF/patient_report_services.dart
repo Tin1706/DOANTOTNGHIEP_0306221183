@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io' as io; 
+import 'package:doantotnghiep/constant.dart';
 import 'package:flutter/foundation.dart' show kIsWeb; 
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -9,7 +10,7 @@ import 'package:doantotnghiep/PDF/patient_report_models.dart';
 
 class PatientReportService {
   // 🟢 Đảm bảo baseUrl nằm ở đầu class để tất cả các hàm bên dưới đều đọc được
-  final String baseUrl = "http://192.168.0.236:8000/api/diabetes-medications";
+  final String baseUrl = AppConstant.address +"/api/diabetes-medications";
 
   // --- HÀM 1: LẤY DỮ LIỆU JSON ---
   Future<PatientReportResponse> fetchPatientReport(int userId) async {

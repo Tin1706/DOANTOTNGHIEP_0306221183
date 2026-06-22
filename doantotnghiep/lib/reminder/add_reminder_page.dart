@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:doantotnghiep/constant.dart';
 import 'package:doantotnghiep/graph/user_model.dart';
 import 'package:doantotnghiep/reminder/medication_category.dart';
 import 'package:doantotnghiep/reminder/notification_services.dart';
@@ -20,7 +21,7 @@ class AddReminderPage extends StatefulWidget {
 }
 
 class _AddReminderPageState extends State<AddReminderPage> {
-  final String baseUrl = "http://192.168.0.236:8000/api/diabetes-medications";
+  final String baseUrl = AppConstant.address + "/api/diabetes-medications";
 
   final _titleController = TextEditingController();
   final _dosageController = TextEditingController();
