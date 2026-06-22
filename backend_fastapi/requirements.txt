@@ -9,3 +9,4 @@ passlib[bcrypt]
 pymysql
 bcrypt==3.2.0
 email-validator
+reportlab
