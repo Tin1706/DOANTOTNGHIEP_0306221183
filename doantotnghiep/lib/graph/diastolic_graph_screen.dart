@@ -33,7 +33,7 @@ class _DiastolicGraphScreenState extends State<DiastolicGraphScreen> {
       // 💡 MẸO ĐỒ ÁN: Hãy thay 'localhost' bằng IP Lan của máy tính bạn (Ví dụ: 192.168.1.5)
       // để khi nộp bài chạy trên điện thoại thật không bị lỗi kết nối mạng nhé!
       final response = await _dio.get(
-        "http://localhost:8000/api/health-metrics/latest",
+        "http://192.168.0.236:8000/api/health-metrics/latest",
         queryParameters: {
           "user_id": widget.user.id,
           "limit": 7,

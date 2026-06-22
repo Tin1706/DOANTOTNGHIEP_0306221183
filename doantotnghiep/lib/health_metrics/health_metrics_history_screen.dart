@@ -32,7 +32,7 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
 
     try {
       // Điều chỉnh lại URL endpoint theo đúng thiết kế Router của Backend Python
-      final String apiUrl = "http://127.0.0.1:8000/api/health-metrics/history/${widget.userId}";
+      final String apiUrl = "http://192.168.0.236:8000/api/health-metrics/history/${widget.userId}";
       final response = await _dio.get(apiUrl);
 
       if (response.statusCode == 200 && response.data['success'] == true) {

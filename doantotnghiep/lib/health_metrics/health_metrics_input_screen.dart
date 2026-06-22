@@ -104,7 +104,7 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
 
     try {
       // Địa chỉ API submit cục bộ (Chỉnh lại nếu dùng IP tĩnh hoặc máy ảo 10.0.2.2)
-      final String apiUrl = "http://127.0.0.1:8000/api/health-metrics/submit";
+      final String apiUrl = "http://192.168.0.236:8000/api/health-metrics/submit";
 
       // Tạo cấu trúc JSON Payload đồng bộ 100% với Pydantic Schema ở Python
       final Map<String, dynamic> payload = {

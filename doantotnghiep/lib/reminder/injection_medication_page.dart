@@ -16,7 +16,7 @@ class InjectionMedicationPage extends StatefulWidget {
 
 class _InjectionMedicationPageState extends State<InjectionMedicationPage> {
   // Giữ nguyên localhost theo môi trường chạy của bác
-  final String baseUrl = "http://localhost:8000/api/diabetes-medications/all";
+  final String baseUrl = "http://192.168.0.236:8000/api/diabetes-medications/all";
   List<Medication> _injectionMedications = [];
   bool _isLoading = true;
 

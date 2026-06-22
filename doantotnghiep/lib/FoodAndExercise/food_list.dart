@@ -30,7 +30,7 @@ class _FoodListScreenState extends State<FoodListScreen> {
     });
     try {
       // Gọi endpoint gốc, Backend sẽ nhảy vào khối else và trả ra hết các món
-      final response = await _dio.get("http://127.0.0.1:8000/api/foods");
+      final response = await _dio.get("http://192.168.0.236:8000/api/foods");
 
       if (response.statusCode == 200 && response.data != null) {
         setState(() {

@@ -32,7 +32,7 @@ class _HeartRateGraphScreenState extends State<HeartRateGraphScreen> {
       print("======> THỰC TẾ FLUTTER GỬI USER ID LÀ: ${widget.user.id}");
 
       final response = await _dio.get(
-        "http://localhost:8000/api/health-metrics/latest",
+        "http://192.168.0.236:8000/api/health-metrics/latest",
         queryParameters: {
           "user_id": widget.user.id,
           "limit": 7,

@@ -13,6 +13,7 @@ class NotificationService {
   // Khởi tạo dịch vụ thông báo
   Future<void> initNotification() async {
     tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
     
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -29,6 +30,7 @@ class NotificationService {
       iOS: initializationSettingsDarwin,
     );
 
+    // 🟢 ĐÃ SỬA: Thêm nhãn 'settings:' chuẩn phiên bản mới
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
     );
@@ -66,36 +68,27 @@ class NotificationService {
     String? sound,
   }) async {
     
-    // 🟢 CẤU HÌNH ĐỔ CHUÔNG LIÊN TỤC Ở ĐÂY:
-    // 🟢 CẤU HÌNH BÁO THỨC LẶP VÔ HẠN (Đã sửa lỗi v17+)
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'medical_alarm_channel_v3', // Đổi ID channel để Android nhận cấu hình mới
+      'medical_alarm_channel_v3', 
       'Báo thức y tế khẩn cấp',
       channelDescription: 'Kênh đổ chuông liên tục cho đến khi người dùng tắt',
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
       sound: RawResourceAndroidNotificationSound('chuong_bao_thuc'),
-      
-      // 🥇 GIẢI PHÁP THAY THẾ: Biến thông báo này thành một hồi chuông báo thức (Alarm) của hệ thống
-      // Hệ điều hành Android sẽ tự động loop (lặp lại) file âm thanh cho đến khi thông báo bị hủy
       audioAttributesUsage: AudioAttributesUsage.alarm,
       category: AndroidNotificationCategory.alarm,
-      
-      // Khóa thanh thông báo, không cho người dùng lấy tay vuốt gạt để xóa (Bắt buộc phải tương tác)
       ongoing: true, 
-      
-      // Cho phép thông báo hiển thị đè lên màn hình khóa hoặc các app khác khi đang dùng (Heads-up notification)
       fullScreenIntent: true,
     );
 
-    final NotificationDetails notificationDetails = NotificationDetails(
+    const NotificationDetails notificationDetails = NotificationDetails(
       android: androidDetails,
-      iOS: const DarwinNotificationDetails(
+      iOS: DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
-        sound: 'chuong_bao_thuc.mp3', // iOS mặc định không hỗ trợ insistent trực tiếp, sẽ dùng cơ chế nhạc nền lặp nếu cần
+        sound: 'chuong_bao_thuc.mp3', 
       ),
     );
 
@@ -115,6 +108,7 @@ class NotificationService {
 
     print("📅 Đã lên lịch báo thức lặp vô hạn [$title] lúc: ${scheduledDate.toString()}");
 
+    // 🟢 ĐÃ SỬA: Ép toàn bộ tham số sang Named Arguments có gắn nhãn tên rõ ràng
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id: id,
       title: title,
@@ -128,6 +122,7 @@ class NotificationService {
 
   // Hủy thông báo/Tắt chuông đang reo theo ID
   Future<void> cancelNotification(int id) async {
+    // 🟢 ĐÃ SỬA: Thêm nhãn 'id:' cho hàm cancel
     await flutterLocalNotificationsPlugin.cancel(id: id);
     print("🛑 Đã tắt chuông báo thức cho ID: $id");
   }

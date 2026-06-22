@@ -47,11 +47,11 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
 
       // 1. Gọi API lấy thông tin cá nhân (Cụm onboarding)
       final infoResponse =
-          await dio.get('http://127.0.0.1:8000/api/onboarding/$userId');
+          await dio.get('http://192.168.0.236:8000/api/onboarding/$userId');
 
       // 2. Gọi API lấy chỉ số trung bình sức khỏe 7 ngày
       final avgResponse = await dio.get(
-          'http://127.0.0.1:8000/api/health-metrics/average?user_id=$userId&days=7');
+          'http://192.168.0.236:8000/api/health-metrics/average?user_id=$userId&days=7');
 
       print("🎁 DỮ LIỆU ONBOARDING CHUẨN: ${infoResponse.data}");
       print("🎁 DỮ LIỆU TRUNG BÌNH THỰC TẾ LÀ: ${avgResponse.data}");

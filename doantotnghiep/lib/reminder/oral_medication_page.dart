@@ -13,7 +13,7 @@ class OralMedicationPage extends StatefulWidget {
 }
 
 class _OralMedicationPageState extends State<OralMedicationPage> {
-  final String apiUrl = "http://localhost:8000/api/diabetes-medications/all";
+  final String apiUrl = "http://192.168.0.236:8000/api/diabetes-medications/all";
   List<Medication> _oralMedications = [];
   bool _isLoading = true;
 

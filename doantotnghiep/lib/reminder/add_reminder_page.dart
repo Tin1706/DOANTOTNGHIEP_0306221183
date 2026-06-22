@@ -20,7 +20,7 @@ class AddReminderPage extends StatefulWidget {
 }
 
 class _AddReminderPageState extends State<AddReminderPage> {
-  final String baseUrl = "http://localhost:8000/api/diabetes-medications";
+  final String baseUrl = "http://192.168.0.236:8000/api/diabetes-medications";
 
   final _titleController = TextEditingController();
   final _dosageController = TextEditingController();

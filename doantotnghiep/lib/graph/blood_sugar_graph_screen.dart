@@ -32,7 +32,7 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
       print("======> THỰC TẾ FLUTTER GỬI USER ID LÀ: ${widget.user.id}");
 
       final response = await _dio.get(
-        "http://localhost:8000/api/health-metrics/latest",
+        "http://192.168.0.236:8000/api/health-metrics/latest",
         queryParameters: {
           "user_id": widget.user.id, // 🟢 Dùng ID của user ở đây
           "limit": 7,

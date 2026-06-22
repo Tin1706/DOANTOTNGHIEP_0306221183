@@ -31,7 +31,7 @@ class _SystolicGraphScreenState extends State<SystolicGraphScreen> {
 
       // 💡 LƯU Ý: Thay 'localhost' bằng IP máy tính (Ví dụ: 192.168.1.5) nếu chạy trên máy thật
       final response = await _dio.get(
-        "http://localhost:8000/api/health-metrics/latest",
+        "http://192.168.0.236:8000/api/health-metrics/latest",
         queryParameters: {
           "user_id": widget.user.id,
           "limit": 7,
