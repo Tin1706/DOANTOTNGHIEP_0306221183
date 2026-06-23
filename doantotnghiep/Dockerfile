@@ -1,27 +1,21 @@
-# === GIAI ĐOẠN 1: Dùng Flutter SDK để build code sang HTML/JS ===
+# === GIAI ĐOẠN 1: Giữ nguyên cấu trúc cực chuẩn của bạn ===
 FROM ghcr.io/cirruslabs/flutter:3.24.0 AS build-env
 
 WORKDIR /app
 USER root
 
-# Copy file cấu hình để tải thư viện trước
 COPY pubspec.yaml ./
 RUN flutter pub get
 
-# Copy toàn bộ source code vào container
 COPY . .
 
-# Build Flutter Web thành sản phẩm tĩnh (nằm trong thư mục build/web)
 RUN flutter config --enable-web
 RUN flutter build web --release
 
-# === GIAI ĐOẠN 2: Dùng Nginx gọn nhẹ để host trang web ===
+# === GIAI ĐOẠN 2: Sửa lại để tương thích với Cổng động của Render ===
 FROM nginx:alpine
 
-# Copy toàn bộ file tĩnh đã build từ Giai đoạn 1 vào thư mục gốc của Nginx
 COPY --from=build-env /app/build/web /usr/share/nginx/html
 
-# Mở cổng 80 bên trong container
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+# 🟢 SỬA DÒNG NÀY: Dùng lệnh vỏ shell để bắt Nginx ghi đè cổng động từ Render vào cấu hình trước khi chạy
+CMD ["sh", "-c", "sed -i 's/listen[:[:space:]]*80;/listen '\"$PORT\"';/g' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

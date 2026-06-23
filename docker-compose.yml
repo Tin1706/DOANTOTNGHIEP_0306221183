@@ -24,8 +24,7 @@ services:
     restart: always  
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend_fastapi:/app
+    # 🟢 Xóa volume mount code ở đây để tránh đè lỗi thư viện
     environment:
       - WATCHFILES_FORCE_POLLING=true
     depends_on:
@@ -37,11 +36,12 @@ services:
     container_name: flutter_container
     restart: always
     ports:
-      - "8080:80" # Đã đổi cổng ra ngoài máy thật thành 8080 ở đây!
-    volumes:
-      - ./doantotnghiep:/app
+      - "8080:80" 
+    # 🟢 Cung cấp biến PORT để Nginx trong Dockerfile bắt được cổng 80 chuẩn xác
+    environment:
+      - PORT=80
     depends_on:
       - fastapi_container
 
 volumes:
-  mysql_data: # Giữ nguyên như thế này để làm sạch cú pháp YAML và lưu DB an toàn
+  mysql_data: # Giữ nguyên để lưu trữ dữ liệu an toàn, không bị mất khi tắt container
