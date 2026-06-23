@@ -1,3 +1,4 @@
+import 'package:doantotnghiep/constant.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:audioplayers/audioplayers.dart'; // 🟢 1. THÊM THƯ VIỆN ĐỂ PHÁT CHUÔNG BÁO ĐỘNG
@@ -104,7 +105,7 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
 
     try {
       // Địa chỉ API submit cục bộ (Chỉnh lại nếu dùng IP tĩnh hoặc máy ảo 10.0.2.2)
-      final String apiUrl = "http://192.168.0.236:8000/api/health-metrics/submit";
+      final String apiUrl = AppConstant.address + '/api/health-metrics/submit';
 
       // Tạo cấu trúc JSON Payload đồng bộ 100% với Pydantic Schema ở Python
       final Map<String, dynamic> payload = {
@@ -131,7 +132,7 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
             await _audioPlayer
                 .setReleaseMode(ReleaseMode.loop); // Bật lặp vô hạn
             await _audioPlayer.play(
-                AssetSource('chuong_bao_thuc.mp3')); // Gáy nhạc chuông lên
+                AssetSource('chuong_bao_thuc.wav')); // Gáy nhạc chuông lên
           } catch (e) {
             print("Không thể phát chuông báo động: $e");
           }

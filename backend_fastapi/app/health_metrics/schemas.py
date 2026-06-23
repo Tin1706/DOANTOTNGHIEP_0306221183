@@ -36,11 +36,22 @@ class ApiResponse(BaseModel):
 
 # --- 4. ĐẦU RA CHO BIỂU ĐỒ (Chart) ---
 class MetricChartPoint(BaseModel):
-    date: str                     # Định dạng "DD/MM" (Ví dụ: "09/06") rất chuẩn cho trục X của Flutter
+    date: str                     # Định dạng "DD/MM" cho trục X của Flutter
+    logged_at: Optional[str] = None # Thêm trường này để hiển thị dòng "Thời gian" ở Flutter
     blood_sugar: Optional[float] = None
+    unit: Optional[str] = "mg/dL"
     systolic_bp: Optional[int] = None
     diastolic_bp: Optional[int] = None
     heart_rate: Optional[int] = None
+    
+    # 🟢 THÊM 4 DÒNG NÀY VÀO ĐỂ PYDANTIC KHÔNG LỌC MẤT DỮ LIỆU CẢNH BÁO
+    blood_sugar_status: Optional[str] = None
+    blood_sugar_warning: Optional[str] = None
+    blood_pressure_warning: Optional[str] = None
+    heart_rate_warning: Optional[str] = None
+
+    class Config:
+        from_attributes = True # Cho phép Pydantic map từ database model sang (nếu dùng Pydantic v2)
 
 class ChartApiResponse(BaseModel):
     success: bool

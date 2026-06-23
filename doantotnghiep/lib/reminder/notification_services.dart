@@ -88,7 +88,7 @@ class NotificationService {
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
-        sound: 'chuong_bao_thuc.mp3', 
+        sound: 'chuong_bao_thuc.wav', 
       ),
     );
 

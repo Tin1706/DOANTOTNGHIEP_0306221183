@@ -117,7 +117,6 @@ def get_latest_metrics(db: Session, user_id: int, limit: int = 7): # Đặt mặ
     # 3. Đảo ngược chuỗi để dữ liệu chạy từ Cũ đến Mới khi vẽ lên biểu đồ Flutter
     chart_data.reverse()
     return chart_data
-
 def calculate_average_metrics(db: Session, user_id: int, limit: int = None):
     """Hàm tính trung bình các chỉ số. Nếu limit=None thì mặc định lấy tất cả dữ liệu"""
     

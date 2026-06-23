@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'health_metrics_input_screen.dart'; // Đảm bảo import đúng đường dẫn tới file nhập liệu
-import 'package:doantotnghiep/constant.dart'; // Thay đổi đường dẫn này nếu bạn đặt file constant.dart ở thư mục khác
+import 'health_metrics_input_screen.dart';
+import 'package:doantotnghiep/constant.dart';
+
 class HealthMetricsHistoryScreen extends StatefulWidget {
   final int userId;
 
-  const HealthMetricsHistoryScreen({Key? key, this.userId = 1}) : super(key: key);
+  const HealthMetricsHistoryScreen({Key? key, this.userId = 1})
+      : super(key: key);
 
   @override
-  _HealthMetricsHistoryScreenState createState() => _HealthMetricsHistoryScreenState();
+  _HealthMetricsHistoryScreenState createState() =>
+      _HealthMetricsHistoryScreenState();
 }
 
-class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen> {
+class _HealthMetricsHistoryScreenState
+    extends State<HealthMetricsHistoryScreen> {
   final Dio _dio = Dio();
   bool _isLoading = true;
   List<dynamic> _historyData = [];
@@ -23,7 +27,6 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
     _fetchHistory();
   }
 
-  // 🔄 Hàm gọi API lấy danh sách lịch sử đo từ FastAPI
   Future<void> _fetchHistory() async {
     setState(() {
       _isLoading = true;
@@ -31,8 +34,8 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
     });
 
     try {
-      // Điều chỉnh lại URL endpoint theo đúng thiết kế Router của Backend Python
-      final String apiUrl = AppConstant.address + "/api/health-metrics/history/${widget.userId}";
+      final String apiUrl =
+          "${AppConstant.address}/api/health-metrics/history/${widget.userId}";
       final response = await _dio.get(apiUrl);
 
       if (response.statusCode == 200 && response.data['success'] == true) {
@@ -47,7 +50,8 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
     } catch (e) {
       setState(() {
         if (e is DioException && e.response != null) {
-          _errorMessage = e.response?.data['detail'] ?? "Lỗi xử lý dữ liệu từ máy chủ.";
+          _errorMessage =
+              e.response?.data['detail'] ?? "Lỗi xử lý dữ liệu từ máy chủ.";
         } else {
           _errorMessage = "Lỗi kết nối máy chủ: ${e.toString()}";
         }
@@ -61,32 +65,36 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Color(0xFF00BCD4); // Màu nền xanh Cyan theo thiết kế Figma
+    const Color primaryColor = Color(0xFF00BCD4);
 
     return Scaffold(
-      backgroundColor: primaryColor,
+      backgroundColor: const Color(0xFFF5F7FA), // Đổi nền xám nhạt để nổi bật Card trắng
       appBar: AppBar(
         backgroundColor: primaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          "Trang chủ",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20),
+          "Lịch sử chỉ số sức khỏe",
+          style: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          ? const Center(child: CircularProgressIndicator(color: primaryColor))
           : _errorMessage.isNotEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Text(
                       _errorMessage,
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -95,44 +103,54 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
                   ? const Center(
                       child: Text(
                         "Chưa có chỉ số đo nào được ghi lại.",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 14.0),
                       itemCount: _historyData.length,
                       itemBuilder: (context, index) {
                         final item = _historyData[index];
-                        // Biến đếm số thứ tự hiển thị ngược hoặc xuôi theo danh sách trả về
-                        final recordNumber = _historyData.length - index; 
-
+                        final recordNumber = _historyData.length - index;
                         return _buildHistoryCard(item, recordNumber);
                       },
                     ),
-
-      // ➕ Nút bấm tròn (FloatingActionButton) thiết kế chuẩn theo Figma ở góc phải dưới
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Điều hướng chuyển tiếp sang màn hình nhập chỉ số sức khỏe
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => HealthMetricsInputScreen(userId: widget.userId),
-            ),
+                builder: (context) =>
+                    HealthMetricsInputScreen(userId: widget.userId)),
           );
-          // Sau khi người dùng nhập dữ liệu xong và bấm back quay lại, tự động làm mới danh sách lịch sử
           _fetchHistory();
         },
-        backgroundColor: Colors.white,
+        backgroundColor: primaryColor,
         elevation: 4,
         shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.black, size: 32),
+        child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
     );
   }
 
-  // 🗂️ Khung thiết kế từng Card hiển thị bộ chỉ số y tế theo Figma mẫu
   Widget _buildHistoryCard(Map<String, dynamic> data, int recordNumber) {
+    // 1. Ép kiểu dữ liệu từ JSON API
+    int heartRate = int.tryParse(data['heart_rate'].toString()) ?? 0;
+    int bloodSugar = int.tryParse(data['blood_sugar'].toString()) ?? 0;
+    int systolicBp = int.tryParse(data['systolic_bp'].toString()) ?? 0;
+    int diastolicBp = int.tryParse(data['diastolic_bp'].toString()) ?? 0;
+
+    // 2. Map trực tiếp các key từ ảnh Response Body của bạn
+    String sugarStatus = data['blood_sugar_status'] ?? "Bình thường";
+    String sugarWarning = data['blood_sugar_warning'] ?? "Ổn định";
+    String bpWarning = data['blood_pressure_warning'] ?? "Huyết áp bình thường";
+    String hrWarning = data['heart_rate_warning'] ?? "Nhịp tim bình thường";
+    String timeDisplay = data['logged_at'] ?? "";
+
+    // Kết hợp trạng thái đường huyết để hiển thị đầy đủ (Ví dụ: "Bình thường (Ổn định)")
+    String fullSugarStatus = "$sugarStatus ($sugarWarning)";
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
       decoration: BoxDecoration(
@@ -140,21 +158,31 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Stack(
         children: [
-          // Hiển thị số thứ tự bản ghi (1, 2, 3...) tại góc phải trên cùng của Card
+          // Số thứ tự bản ghi nằm ở góc phải
           Positioned(
             top: 16,
             right: 20,
-            child: Text(
-              "$recordNumber",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00BCD4).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                "#$recordNumber",
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00BCD4)),
+              ),
             ),
           ),
           Padding(
@@ -162,33 +190,58 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Chỉ số đường huyết
                 _buildMetricRow(
-                  "Chỉ số đường huyết:",
-                  "${data['blood_sugar']} ${data['unit'] ?? 'mg/dL'}",
-                  data['blood_sugar_status'] ?? "Bình thường",
-                  _getStatusColor(data['blood_sugar_status']),
+                  icon: Icons.bloodtype,
+                  iconColor: Colors.redAccent,
+                  label: "Đường huyết:",
+                  value: "$bloodSugar ${data['unit'] ?? 'mg/dL'}",
+                  status: fullSugarStatus,
+                  statusColor: _getStatusColor(sugarStatus),
                 ),
-                const SizedBox(height: 10),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Divider(color: Color(0xFFECEFF1)),
+                ),
+                // Chỉ số huyết áp (Gộp cả tâm thu và tâm trương vào 1 dòng cho chuyên nghiệp)
                 _buildMetricRow(
-                  "Chỉ số huyết áp tâm thu:",
-                  "${data['systolic_bp']} mmHg",
-                  data['systolic_bp_status'] ?? "",
-                  _getStatusColor(data['systolic_bp_status']),
+                  icon: Icons.favorite,
+                  iconColor: Colors.pink,
+                  label: "Huyết áp:",
+                  value: "$systolicBp / $diastolicBp mmHg",
+                  status: bpWarning,
+                  statusColor: _getStatusColor(bpWarning),
                 ),
-                const SizedBox(height: 10),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Divider(color: Color(0xFFECEFF1)),
+                ),
+                // Chỉ số nhịp tim
                 _buildMetricRow(
-                  "Chỉ số huyết áp tâm trương:",
-                  "${data['diastolic_bp']} mmHg",
-                  data['diastolic_bp_status'] ?? "",
-                  _getStatusColor(data['diastolic_bp_status']),
+                  icon: Icons.monitor_heart,
+                  iconColor: Colors.orange,
+                  label: "Nhịp tim:",
+                  value: "$heartRate bpm",
+                  status: hrWarning,
+                  statusColor: _getStatusColor(hrWarning),
                 ),
-                const SizedBox(height: 10),
-                _buildMetricRow(
-                  "Chỉ số nhịp tim:",
-                  "${data['heart_rate']} bpm",
-                  data['heart_rate_status'] ?? "Bình thường",
-                  _getStatusColor(data['heart_rate_status']),
-                ),
+                
+                if (timeDisplay.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Thời gian: $timeDisplay",
+                        style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ]
               ],
             ),
           ),
@@ -197,46 +250,78 @@ class _HealthMetricsHistoryScreenState extends State<HealthMetricsHistoryScreen>
     );
   }
 
-  // Hàm tạo dòng text chi tiết của từng loại chỉ số bên trong thẻ Card lịch sử
-  Widget _buildMetricRow(String label, String value, String status, Color statusColor) {
-    return Column(
+  Widget _buildMetricRow({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    required String status,
+    required Color statusColor,
+  }) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w500),
-            ),
-            if (status.isNotEmpty) ...[
-              const Text("  -  ", style: TextStyle(color: Colors.black54)),
-              Text(
-                status,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: statusColor),
+        Icon(icon, color: iconColor, size: 22),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: Colors.black87),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
+              if (status.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  status,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: statusColor),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ],
     );
   }
 
-  // 🎨 Hàm tự động phân tích nhãn trạng thái để gán màu sắc trực quan (Đỏ khi cao/thấp, Xanh khi ổn định)
-  Color _getStatusColor(String? status) {
-    if (status == null) return Colors.black54;
-    final lowercaseStatus = status.toLowerCase();
-    if (lowercaseStatus.contains('bình thường') || lowercaseStatus.contains('ổn định')) {
-      return Colors.green;
-    } else if (lowercaseStatus.contains('cao') || lowercaseStatus.contains('thấp') || lowercaseStatus.contains('nguy hiểm')) {
-      return Colors.red;
+  // Bộ lọc màu tự động phân tích chuỗi tiếng Việt trả về từ Backend FastAPI
+  Color _getStatusColor(String status) {
+    String lowerStatus = status.toLowerCase();
+    
+    // Các trường hợp cảnh báo nguy hiểm / bất thường -> Đỏ
+    if (lowerStatus.contains('cao') ||
+        lowerStatus.contains('nhanh') ||
+        lowerStatus.contains('thấp') || 
+        lowerStatus.contains('chậm') || 
+        lowerStatus.contains('khẩn cấp')) {
+      return Colors.red.shade700;
     }
-    return Colors.orange;
+    
+    // Các trường hợp tiền báo động (nếu có sau này ví dụ: "Tiền cao huyết áp") -> Cam
+    if (lowerStatus.contains('tiền') || lowerStatus.contains('nguy cơ')) {
+      return Colors.orange.shade700;
+    }
+    
+    // Mặc định an toàn (Bình thường / Ổn định) -> Xanh lá
+    return Colors.green.shade700;
   }
 }

@@ -101,7 +101,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
           : _dosageController.text.trim(),
       "reminder_time": timeStr,
       "is_active": true,
-      "sound_file": "chuong_bao_thuc.mp3"
+      "sound_file": "chuong_bao_thuc.wav"
     };
 
     try {

@@ -175,7 +175,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
 
     try {
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      await _audioPlayer.play(AssetSource('chuong_bao_thuc.mp3'));
+      await _audioPlayer.play(AssetSource('chuong_bao_thuc.wav'));
     } catch (e) {
       print("Không thể phát chuông báo thức: $e");
     }
