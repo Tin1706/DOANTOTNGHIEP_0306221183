@@ -1,5 +1,5 @@
 # === GIAI ĐOẠN 1: Giữ nguyên cấu trúc cực chuẩn của bạn ===
-FROM ghcr.io/cirruslabs/flutter:3.24.0 AS build-env
+FROM ghcr.io/cirruslabs/flutter:3.27.0 AS build-env
 
 WORKDIR /app
 USER root
