@@ -34,7 +34,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
 
     try {
       // ĐỔI THÀNH SỐ ÍT: /api/exercise (bỏ chữ 's') để dứt điểm lỗi 404
-      final response = await _dio.get("${AppConstant.address}api/exercise");
+      final response = await _dio.get("${AppConstant.address}/api/exercise");
 
       if (response.statusCode == 200 && response.data != null) {
         setState(() {

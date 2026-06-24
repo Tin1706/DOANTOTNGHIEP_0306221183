@@ -27,7 +27,7 @@ class _LatestMetricsScreenState extends State<LatestMetricsScreen> {
   Future<void> _fetchLatestMetrics() async {
     // Thay đổi URL phù hợp với môi trường chạy (10.0.2.2 là localhost cho máy ảo Android)
     final url = Uri.parse(
-        AppConstant.address + 'api/health-metrics/latest?user_id=${widget.userId}&limit=10');
+        AppConstant.address + '/api/health-metrics/latest?user_id=${widget.userId}&limit=10');
 
     try {
       final response = await http.get(url);

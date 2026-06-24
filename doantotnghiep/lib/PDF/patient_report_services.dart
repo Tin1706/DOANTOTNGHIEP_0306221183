@@ -12,7 +12,7 @@ import 'package:universal_html/html.dart' as html;
 
 class PatientReportService {
   // 🟢 Đảm bảo baseUrl nằm ở đầu class để tất cả các hàm bên dưới đều đọc được
-  final String baseUrl = AppConstant.address + "api/diabetes-medications";
+  final String baseUrl = AppConstant.address + "/api/diabetes-medications";
 
   // --- HÀM 1: LẤY DỮ LIỆU JSON ---
   Future<PatientReportResponse> fetchPatientReport(int userId) async {
