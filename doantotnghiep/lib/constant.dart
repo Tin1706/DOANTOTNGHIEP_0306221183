@@ -1,4 +1,4 @@
 class AppConstant{
-    static const String address = "https://diabetes-backend-ntij.onrender.com/";
+    static const String address = "http://localhost:8000";
 }
    
