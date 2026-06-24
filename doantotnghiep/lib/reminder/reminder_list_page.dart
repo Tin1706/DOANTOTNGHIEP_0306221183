@@ -18,7 +18,7 @@ class ReminderListPage extends StatefulWidget {
 }
 
 class _ReminderListPageState extends State<ReminderListPage> {
-  final String baseUrl = AppConstant.address + "/api/diabetes-medications";
+  final String baseUrl = AppConstant.address + "api/diabetes-medications";
   List<ReminderItem> _reminders = [];
   bool _isLoading = true;
   final List<Timer> _reminderTimers = [];

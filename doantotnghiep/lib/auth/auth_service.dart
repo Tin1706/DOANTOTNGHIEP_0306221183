@@ -8,7 +8,7 @@ class AuthService {
 
   // Biến cấu hình Dio chuẩn cho toàn bộ class
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: AppConstant.address + '/api/auth', 
+    baseUrl: AppConstant.address + 'api/auth', 
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
     headers: {

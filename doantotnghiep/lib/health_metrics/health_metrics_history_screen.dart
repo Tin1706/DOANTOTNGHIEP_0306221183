@@ -35,7 +35,7 @@ class _HealthMetricsHistoryScreenState
 
     try {
       final String apiUrl =
-          "${AppConstant.address}/api/health-metrics/history/${widget.userId}";
+          "${AppConstant.address}api/health-metrics/history/${widget.userId}";
       final response = await _dio.get(apiUrl);
 
       if (response.statusCode == 200 && response.data['success'] == true) {

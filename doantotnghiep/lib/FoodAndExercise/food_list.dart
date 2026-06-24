@@ -1,3 +1,4 @@
+import 'package:doantotnghiep/constant.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 
@@ -15,7 +16,7 @@ class _FoodListScreenState extends State<FoodListScreen> {
 
   // Danh sách lưu trữ các món ăn đang được chọn (Tối đa 4 món)
   final List<dynamic> _selectedFoods = [];
-  int _totalCalories = 0; 
+  int _totalCalories = 0;
 
   @override
   void initState() {
@@ -30,7 +31,7 @@ class _FoodListScreenState extends State<FoodListScreen> {
     });
     try {
       // Gọi endpoint gốc, Backend sẽ nhảy vào khối else và trả ra hết các món
-      final response = await _dio.get("http://192.168.0.236:8000/api/foods");
+      final response = await _dio.get("${AppConstant.address}api/foods");
 
       if (response.statusCode == 200 && response.data != null) {
         setState(() {
@@ -46,7 +47,8 @@ class _FoodListScreenState extends State<FoodListScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lỗi tải thực đơn: $e"), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text("Lỗi tải thực đơn: $e"), backgroundColor: Colors.red),
       );
     }
   }
@@ -56,7 +58,8 @@ class _FoodListScreenState extends State<FoodListScreen> {
     final int foodId = food['id'];
     final int calories = (food['calories'] as num).toInt();
 
-    final int existingIndex = _selectedFoods.indexWhere((element) => element['id'] == foodId);
+    final int existingIndex =
+        _selectedFoods.indexWhere((element) => element['id'] == foodId);
 
     setState(() {
       if (existingIndex >= 0) {
@@ -98,7 +101,8 @@ class _FoodListScreenState extends State<FoodListScreen> {
         ),
         title: const Text(
           "Danh sách các khẩu phần ăn",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
       ),
@@ -109,33 +113,43 @@ class _FoodListScreenState extends State<FoodListScreen> {
             padding: const EdgeInsets.symmetric(vertical: 14.0),
             child: Text(
               "Đã chọn: ${_selectedFoods.length}/4 món cho 1 bữa ăn",
-              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
             ),
           ),
 
           // LƯỚI TOÀN BỘ MÓN ĂN TRONG DATABASE
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white))
                 : _foods.isEmpty
                     ? const Center(
                         child: Text(
                           "Không có dữ liệu món ăn",
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500),
                         ),
                       )
                     : GridView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,       // Hiển thị 3 cột chuẩn bài
-                          crossAxisSpacing: 10,    // Khoảng cách ngang
-                          mainAxisSpacing: 12,     // Khoảng cách dọc
-                          childAspectRatio: 0.85,  // Tỷ lệ co giãn khung ảnh ôm khít tên
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3, // Hiển thị 3 cột chuẩn bài
+                          crossAxisSpacing: 10, // Khoảng cách ngang
+                          mainAxisSpacing: 12, // Khoảng cách dọc
+                          childAspectRatio:
+                              0.85, // Tỷ lệ co giãn khung ảnh ôm khít tên
                         ),
                         itemCount: _foods.length,
                         itemBuilder: (context, index) {
                           final food = _foods[index];
-                          final bool isSelected = _selectedFoods.any((element) => element['id'] == food['id']);
+                          final bool isSelected = _selectedFoods
+                              .any((element) => element['id'] == food['id']);
 
                           return GestureDetector(
                             onTap: () => _toggleSelectFood(food),
@@ -144,7 +158,9 @@ class _FoodListScreenState extends State<FoodListScreen> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: isSelected ? Colors.red : Colors.transparent, // Viền đỏ khi chọn
+                                  color: isSelected
+                                      ? Colors.red
+                                      : Colors.transparent, // Viền đỏ khi chọn
                                   width: isSelected ? 2.5 : 0.0,
                                 ),
                                 boxShadow: [
@@ -159,32 +175,42 @@ class _FoodListScreenState extends State<FoodListScreen> {
                               child: Stack(
                                 children: [
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       // Ảnh món ăn
                                       Expanded(
                                         child: Padding(
                                           padding: const EdgeInsets.all(5.0),
                                           child: ClipRRect(
-                                            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                                            borderRadius:
+                                                const BorderRadius.vertical(
+                                                    top: Radius.circular(8)),
                                             child: Image.network(
                                               food['img_url'] ?? '',
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) =>
-                                                  const Icon(Icons.restaurant, color: primaryColor, size: 32),
+                                              errorBuilder: (context, error,
+                                                      stackTrace) =>
+                                                  const Icon(Icons.restaurant,
+                                                      color: primaryColor,
+                                                      size: 32),
                                             ),
                                           ),
                                         ),
                                       ),
                                       // Tên món ăn
                                       Padding(
-                                        padding: const EdgeInsets.only(bottom: 8.0, left: 4.0, right: 4.0, top: 2.0),
+                                        padding: const EdgeInsets.only(
+                                            bottom: 8.0,
+                                            left: 4.0,
+                                            right: 4.0,
+                                            top: 2.0),
                                         child: Text(
                                           food['meal_name'] ?? '',
                                           textAlign: TextAlign.center,
                                           style: const TextStyle(
-                                            color: Colors.black, 
-                                            fontWeight: FontWeight.bold, 
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
                                           maxLines: 2,
@@ -204,7 +230,8 @@ class _FoodListScreenState extends State<FoodListScreen> {
                                           color: Colors.red,
                                           shape: BoxShape.circle,
                                         ),
-                                        child: const Icon(Icons.check, color: Colors.white, size: 14),
+                                        child: const Icon(Icons.check,
+                                            color: Colors.white, size: 14),
                                       ),
                                     ),
                                 ],
@@ -218,12 +245,15 @@ class _FoodListScreenState extends State<FoodListScreen> {
           // BANNER TỔNG CALO CỘNG DỒN DƯỚI ĐÁY
           Container(
             width: double.infinity,
-            color: const Color(0xFF4CAF50), 
+            color: const Color(0xFF4CAF50),
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text(
               "Tổng calo đã chọn: $_totalCalories (kcal)",
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold),
             ),
           ),
         ],
