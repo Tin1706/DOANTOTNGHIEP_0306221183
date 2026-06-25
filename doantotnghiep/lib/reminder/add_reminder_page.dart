@@ -43,12 +43,10 @@ class _AddReminderPageState extends State<AddReminderPage> {
             TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
       }
 
-      // 🟢 KIỂM TRA AN TOÀN: Nếu nhắc nhở cũ có gắn với thuốc (> 0) thì mới khởi tạo thuốc
       if (oldData.medicationDictionaryId != null &&
           oldData.medicationDictionaryId! > 0) {
         _selectedMedication = Medication(
-          id: oldData
-              .medicationDictionaryId!, // Thêm dấu "!" vì ta đã chắc chắn nó không null sau cú check ở trên
+          id: oldData.medicationDictionaryId!,
           medicationName: oldData.title,
           medicationCategory: "",
         );
@@ -71,30 +69,22 @@ class _AddReminderPageState extends State<AddReminderPage> {
   }
 
   Future<void> _submitData() async {
-    // 🟢 BỎ HOÀN TOÀN ĐOẠN CHẶN IF-EMPTY CŨ ĐỂ KHÔNG BẮT BUỘC NHẬP ĐẦY ĐỦ
-
-    // Xử lý định dạng giờ (Nếu không chọn giờ thì mặc định là 00:00:00)
     String timeStr = "00:00:00";
     if (_selectedTime != null) {
       timeStr =
           "${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00";
     }
 
-    // Tự động tối ưu tiêu đề nhắc nhở nếu người dùng để trống ô nhập
     String finalTitle = _titleController.text.trim();
     if (finalTitle.isEmpty) {
       finalTitle = _selectedMedication == null
-          ? "Nhắc nhở đo đường huyết" // Mặc định nếu không chọn cả thuốc lẫn chữ
-          : _selectedMedication!
-              .medicationName; // Lấy luôn tên thuốc làm tiêu đề nếu có chọn thuốc
+          ? "Nhắc nhở đo đường huyết"
+          : _selectedMedication!.medicationName;
     }
 
-    // Đóng gói JSON Payload gửi lên Python Server
-    // Thay đổi dòng medication_dictionary_id:
     final bodyData = {
       "user_id": widget.user.id,
-      "medication_dictionary_id": _selectedMedication
-          ?.id, // 🟢 Bỏ hẳn "?? 0" đi, để nó tự ra null nếu không chọn thuốc
+      "medication_dictionary_id": _selectedMedication?.id,
       "title": finalTitle,
       "dosage": _dosageController.text.trim().isEmpty
           ? "Thực hiện đúng giờ"
@@ -124,7 +114,6 @@ class _AddReminderPageState extends State<AddReminderPage> {
             final serverData = resData['data'];
             isSuccess = true;
 
-            // Chỉ đặt lịch thông báo cục bộ nếu người dùng THỰC SỰ có chọn giờ
             if (!kIsWeb && _selectedTime != null && serverData != null) {
               await NotificationService().scheduleDailyNotification(
                 id: serverData['reminder_id'] ?? 0,
@@ -132,7 +121,8 @@ class _AddReminderPageState extends State<AddReminderPage> {
                 body: serverData['body'] ?? bodyData['dosage'],
                 hour: serverData['hour'] ?? _selectedTime!.hour,
                 minute: serverData['minute'] ?? _selectedTime!.minute,
-                sound: 'chuong_bao_thuc',
+                // 🟢 Đảm bảo hàm scheduleDailyNotification của bạn nhận kiểu String cho tham số sound
+                sound: 'chuong_bao_thuc', 
               );
             }
           }
@@ -158,7 +148,6 @@ class _AddReminderPageState extends State<AddReminderPage> {
               await NotificationService()
                   .cancelNotification(widget.reminderToUpdate!.id);
 
-              // Chỉ kích hoạt lại lịch báo thức khi có giờ giấc hợp lệ
               if (serverData != null &&
                   serverData['is_active'] == true &&
                   _selectedTime != null) {

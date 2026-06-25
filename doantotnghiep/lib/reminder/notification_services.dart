@@ -75,7 +75,7 @@ class NotificationService {
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
-      sound: RawResourceAndroidNotificationSound('chuong_bao_thuc'),
+      sound: const RawResourceAndroidNotificationSound('chuong_bao_thuc'),
       audioAttributesUsage: AudioAttributesUsage.alarm,
       category: AndroidNotificationCategory.alarm,
       ongoing: true, 
