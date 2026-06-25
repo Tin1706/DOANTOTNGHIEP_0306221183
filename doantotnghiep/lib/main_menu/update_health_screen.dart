@@ -83,7 +83,7 @@ class _UpdateHealthScreenState extends State<UpdateHealthScreen> {
     setState(() => _isSubmitting = true);
 
     // 🚀 ĐƯỜNG DẪN API CẬP NHẬT (Giữ nguyên host của bác)
-    final url = Uri.parse(AppConstant.address + 'api/user-health/update');
+    final url = Uri.parse(AppConstant.address + '/api/user-health/update');
 
     final bodyData = {
       "user_id": widget.currentUser.id,
