@@ -1,4 +1,4 @@
 class AppConstant{
-    static const String address = "http://192.168.0.236:8000";
+    static const String address = "http://152.42.192.190:8000";
 }
    
