@@ -2,9 +2,10 @@ import 'package:doantotnghiep/auth/login_screen.dart';
 import 'package:doantotnghiep/constant.dart';
 import 'package:doantotnghiep/main_menu/update_health_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart'; // Đã thêm import Dio thành công
+import 'package:dio/dio.dart';
 import 'package:doantotnghiep/graph/user_model.dart';
-import 'dart:convert'; // 🌟 Bắt buộc phải có để dùng jsonDecode
+import 'dart:convert';
+import 'package:audioplayers/audioplayers.dart'; // 🌟 1. Import thư viện âm thanh
 
 class PatientInfoScreen extends StatefulWidget {
   final UserModel user;
@@ -16,7 +17,6 @@ class PatientInfoScreen extends StatefulWidget {
 }
 
 class _PatientInfoScreenState extends State<PatientInfoScreen> {
-  // 🟢 Khai báo các biến lưu dữ liệu động kéo từ các API về
   bool _isLoading = true;
   int? _age;
   double? _height;
@@ -30,29 +30,78 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
   double? _avgDiastolicBp;
   double? _avgHeartRate;
 
+  // 🌟 2. Khai báo bộ điều khiển âm thanh và biến trạng thái cảnh báo
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isAlarmPlaying = false;
+  String _alarmReason = ""; // Lý do báo động (ví dụ: Huyết áp cao!)
+
   @override
   void initState() {
     super.initState();
-    _fetchPatientData(); // Tự động kéo dữ liệu khi màn hình được bật lên
+    _fetchPatientData();
   }
 
-  // 🟢 Hàm kết hợp gọi song song 2 API (Onboarding & Health Metrics)
-  // 🟢 Hàm kết hợp gọi song song 2 API (Onboarding & Health Metrics)
-  // ======================================================================
-  // 🚀 HÀM KHÁNG LỖI PARSE: Tự động bóc tách Mảng/Chuỗi JSON từ Database
-  // ======================================================================
+  // 🌟 3. Giải phóng bộ nhớ âm thanh khi thoát màn hình để tránh rò rỉ (leak) bộ nhớ
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  // 🌟 4. Hàm kích hoạt phát chuông báo thức liên tục
+  void _playAlarm(String reason) async {
+    if (_isAlarmPlaying) return; // Nếu đang kêu rồi thì không bật đè lên nữa
+
+    setState(() {
+      _isAlarmPlaying = true;
+      _alarmReason = reason;
+    });
+
+    try {
+      // Thiết lập phát lặp đi lặp lại (Loop) cho đến khi bấm tắt
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      // Phát file âm thanh từ thư mục assets
+      await _audioPlayer.play(AssetSource('chuong_bao_thuc.wav'));
+    } catch (e) {
+      print("🚨 Lỗi phát âm thanh báo thức: $e");
+    }
+  }
+
+  // 🌟 5. Hàm tắt chuông báo thức bằng tay
+  void _stopAlarm() async {
+    await _audioPlayer.stop();
+    setState(() {
+      _isAlarmPlaying = false;
+      _alarmReason = "";
+    });
+  }
+
+  // 🌟 6. Hàm kiểm tra sức khỏe để kích hoạt chuông tự động
+  void _checkHealthThresholds() {
+    // Ví dụ cấu hình ngưỡng nguy hiểm:
+    // Huyết áp tâm thu > 140 mmHg hoặc Đường huyết > 180 mg/dL hoặc Nhịp tim > 100 bpm
+    if (_avgSystolicBp != null && _avgSystolicBp! > 140.0) {
+      _playAlarm(
+          "Huyết áp tâm thu trung bình cao vượt ngưỡng (${_avgSystolicBp!.toStringAsFixed(1)} mmHg)!");
+    } else if (_avgBloodSugar != null && _avgBloodSugar! > 180.0) {
+      _playAlarm(
+          "Đường huyết trung bình cao nguy hiểm (${_avgBloodSugar!.toStringAsFixed(1)} mg/dL)!");
+    } else if (_avgHeartRate != null && _avgHeartRate! > 100.0) {
+      _playAlarm(
+          "Nhịp tim trung bình đập quá nhanh (${_avgHeartRate!.toStringAsFixed(1)} bpm)!");
+    }
+  }
+
   Future<void> _fetchPatientData() async {
     try {
       final dio = Dio();
       final int userId = widget.user.id;
 
-      // 1. Gọi API lấy thông tin cá nhân (Cụm onboarding)
       final infoResponse =
           await dio.get(AppConstant.address + '/api/onboarding/$userId');
 
-      // 2. Gọi API lấy chỉ số trung bình sức khỏe 7 ngày
-      final avgResponse = await dio.get(
-          AppConstant.address + '/api/health-metrics/average?user_id=$userId&days=7');
+      final avgResponse = await dio.get(AppConstant.address +
+          '/api/health-metrics/average?user_id=$userId&days=7');
 
       print("🎁 DỮ LIỆU ONBOARDING CHUẨN: ${infoResponse.data}");
       print("🎁 DỮ LIỆU TRUNG BÌNH THỰC TẾ LÀ: ${avgResponse.data}");
@@ -87,7 +136,6 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
         }
 
         setState(() {
-          // --- A. Gán dữ liệu cơ bản dạng Số ---
           _age = infoData['Age'] != null
               ? int.tryParse(infoData['Age'].toString())
               : null;
@@ -99,17 +147,15 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
               : null;
           _allergies = infoData['allergies']?.toString() ?? "Không có";
 
-          // --- B. GIẢI MÃ BỆNH NỀN (Hỗ trợ cả List dynamic và String JSON) ---
+          // --- B. GIẢI MÃ BỆNH NỀN ---
           var rawConditions =
               infoData['pre_existing_conditions'] ?? infoData['conditions'];
           if (rawConditions != null) {
             if (rawConditions is List) {
-              // Trường hợp API trả thẳng về mảng
               _medicalHistory = rawConditions.isNotEmpty
                   ? rawConditions.join(', ')
                   : "Không có";
             } else {
-              // Trường hợp API trả về chuỗi kí tự đại diện mảng hoặc chuỗi thô
               String condStr = rawConditions.toString().trim();
               if (condStr.startsWith('[') && condStr.endsWith(']')) {
                 try {
@@ -132,7 +178,7 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
             _medicalHistory = "Không có";
           }
 
-          // --- C. GIẢI MÃ TRIỆU CHỨNG (Hỗ trợ cả List dynamic và String JSON) ---
+          // --- C. GIẢI MÃ TRIỆU CHỨNG ---
           var rawSymptoms = infoData['symptoms'];
           if (rawSymptoms != null) {
             if (rawSymptoms is List) {
@@ -177,6 +223,9 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
 
           _isLoading = false;
         });
+
+        // 🌟 7. Sau khi setState xong dữ liệu mới, chạy hàm check ngưỡng cảnh báo luôn
+        _checkHealthThresholds();
       }
     } catch (e) {
       print("🚨 Lỗi hệ thống khi fetch dữ liệu đồ án: $e");
@@ -209,9 +258,8 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
       body: SafeArea(
         child: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(
-                    color:
-                        Colors.white)) // Hiện vòng loading khi đợi API trả về
+                child: CircularProgressIndicator(color: Colors.white),
+              )
             : SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Padding(
@@ -220,7 +268,10 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 🟢 1. KHỐI THÔNG TIN CÁ NHÂN LẤY ĐỘNG 100% TỪ DATABASE BIẾN ĐỘNG _
+                      // 🌟 8. BANNER HIỂN THỊ CẢNH BÁO BÁO THỨC TRỰC QUAN ĐẦU TRANG
+                      if (_isAlarmPlaying) _buildAlarmWidget(),
+
+                      // 🟢 1. KHỐI THÔNG TIN CÁ NHÂN LẤY ĐỘNG 100%
                       _buildInfoRow("Tên bệnh nhân :", widget.user.name,
                           isBold: true),
                       _buildInfoRow(
@@ -242,7 +293,7 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
 
                       const SizedBox(height: 15),
 
-                      // 🟢 2. KHỐI HIỂN THỊ DỮ LIỆU TRUNG BÌNH LẤY ĐỘNG TỪ API HEALTH-METRICS
+                      // 🟢 2. KHỐI HIỂN THỊ DỮ LIỆU TRUNG BÌNH LẤY ĐỘNG
                       _buildAverageRow("Chỉ số đường huyết trung bình:",
                           _avgBloodSugar, "mg/dL"),
                       _buildAverageRow("Chỉ số huyết áp tâm thu trung bình:",
@@ -254,7 +305,6 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
 
                       const SizedBox(height: 35),
 
-                      // 3. KHỐI NÚT CHỨC NĂNG
                       // 3. KHỐI NÚT CHỨC NĂNG
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -268,18 +318,17 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12)),
                               ),
-                              // 🌟 SỬA ĐOẠN NÀY: Thêm await và gọi lại hàm fetch dữ liệu khi quay về
                               onPressed: () async {
+                                // Nếu đang bật chuông, tắt trước khi sang trang khác tránh gây ồn
+                                _stopAlarm();
+
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => UpdateHealthScreen(
-                                      currentUser: widget.user,
-                                    ),
+                                        currentUser: widget.user),
                                   ),
                                 );
-
-                                // 🔥 Khi người dùng bấm lưu và quay lại từ UpdateHealthScreen, dòng này sẽ chạy:
                                 print(
                                     "🔄 Người dùng đã quay lại màn hình thông tin! Tiến hành refresh dữ liệu mới nhất...");
                                 _fetchPatientData();
@@ -294,7 +343,6 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          // ... Giữ nguyên nút Đăng xuất phía dưới của bác ...
                           Expanded(
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
@@ -305,6 +353,7 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
                                     borderRadius: BorderRadius.circular(12)),
                               ),
                               onPressed: () {
+                                _stopAlarm(); // Tắt chuông khi đăng xuất
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -324,6 +373,65 @@ class _PatientInfoScreenState extends State<PatientInfoScreen> {
                   ),
                 ),
               ),
+      ),
+    );
+  }
+
+  // 🌟 9. Giao diện Banner Đỏ nhấp nháy báo động chuông và nút Tắt nhanh
+  Widget _buildAlarmWidget() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.shade800,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.white, size: 30),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "CẢNH BÁO SỨC KHỎE!",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _alarmReason,
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.red.shade800,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: _stopAlarm,
+            icon: const Icon(Icons.volume_off),
+            label: const Text("TẮT CHUÔNG BÁO THỨC",
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          )
+        ],
       ),
     );
   }

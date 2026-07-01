@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-// 🟢 1. Thêm import thư viện múi giờ (timezone)
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-
 import 'auth/login_screen.dart';
-
-// 🟢 2. Chuyển hàm main() thành hàm async để đợi khởi tạo múi giờ
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
-  // Bắt buộc phải gọi dòng này đầu tiên khi dùng async trong main
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // 🟢 3. Khởi tạo dữ liệu múi giờ hệ thống (Fix triệt để lỗi _local chưa gán giá trị)
     tz.initializeTimeZones();
-    // Đặt múi giờ mặc định của thiết bị là Việt Nam (Băng Cốc/Hồ Chí Minh)
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
   } catch (e) {
     print("Lỗi khởi tạo múi giờ: $e");
@@ -31,19 +25,21 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Đồ án quản lý hỗ trợ bệnh nhân tiểu đường',
       debugShowCheckedModeBanner: false,
-      
-      // Cấu hình ngôn ngữ (Giữ nguyên cấu trúc chuẩn của bạn)
+
+      // 🟢 CHUẨN: Trỏ đúng vào key nằm trong file constant.dart mà bạn vừa chốt lúc nãy
+      navigatorKey: navigatorKey,
+
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('vi', 'VN'), // Tiếng Việt
-        Locale('en', 'US'), // Tiếng Anh
+        Locale('vi', 'VN'),
+        Locale('en', 'US'),
       ],
-      locale: const Locale('vi', 'VN'), // Mặc định tiếng Việt
-      
+      locale: const Locale('vi', 'VN'),
+
       theme: ThemeData(
         fontFamily: 'Roboto',
       ),

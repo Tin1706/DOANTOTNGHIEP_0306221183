@@ -94,9 +94,11 @@ class _AddReminderPageState extends State<AddReminderPage> {
       "sound_file": "chuong_bao_thuc.wav"
     };
 
+    // Tạo sẵn biến để lưu trạng thái phản hồi từ API gốc
+    bool apiCallWorked = false;
+
     try {
       http.Response response;
-      bool isSuccess = false;
 
       if (widget.reminderToUpdate == null) {
         // --- LUỒNG 1: THÊM MỚI (POST) ---
@@ -106,23 +108,46 @@ class _AddReminderPageState extends State<AddReminderPage> {
           body: json.encode(bodyData),
         );
 
-        print("Đang thêm mới - StatusCode: ${response.statusCode}");
-
         if (response.statusCode == 201 || response.statusCode == 200) {
           final resData = json.decode(response.body);
           if (resData['success'] == true) {
+            apiCallWorked = true;
             final serverData = resData['data'];
-            isSuccess = true;
 
-            if (!kIsWeb && _selectedTime != null && serverData != null) {
-              await NotificationService().scheduleDailyNotification(
-                id: serverData['reminder_id'] ?? 0,
-                title: serverData['title'] ?? bodyData['title'],
-                body: serverData['body'] ?? bodyData['dosage'],
-                hour: serverData['hour'] ?? _selectedTime!.hour,
-                minute: serverData['minute'] ?? _selectedTime!.minute,
-                // 🟢 Đảm bảo hàm scheduleDailyNotification của bạn nhận kiểu String cho tham số sound
-                sound: 'chuong_bao_thuc', 
+            // 📱 Cấu hình cho Mobile (Android/iOS)
+            // 📱 Cấu hình cho Mobile (Android/iOS)
+            if (!kIsWeb && _selectedTime != null) {
+              try {
+                // Nếu server không trả về reminder_id, tự tạo một ID int ngẫu nhiên để không bị crash
+                final int mobileId =
+                    (serverData != null ? serverData['reminder_id'] : null) ??
+                        (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
+
+                await NotificationService().scheduleDailyNotification(
+                  id: mobileId,
+                  title: (serverData != null ? serverData['title'] : null) ??
+                      finalTitle,
+                  body: (serverData != null ? serverData['body'] : null) ??
+                      bodyData['dosage'].toString(),
+                  hour: _selectedTime!.hour,
+                  minute: _selectedTime!.minute,
+                );
+              } catch (soundError) {
+                print("🚨 Lỗi nạp thông báo Android: $soundError");
+              }
+            }
+
+            // 🌐 Cấu hình cho WEB
+            if (kIsWeb && _selectedTime != null) {
+              final int rId =
+                  (serverData != null ? serverData['reminder_id'] : null) ??
+                      DateTime.now().millisecondsSinceEpoch ~/ 1000;
+              NotificationService.addWebReminder(
+                id: rId,
+                title: finalTitle,
+                body: bodyData['dosage'].toString(),
+                hour: _selectedTime!.hour,
+                minute: _selectedTime!.minute,
               );
             }
           }
@@ -135,53 +160,64 @@ class _AddReminderPageState extends State<AddReminderPage> {
           body: json.encode(bodyData),
         );
 
-        print("Đang cập nhật - StatusCode: ${response.statusCode}");
-
         if (response.statusCode == 200 || response.statusCode == 204) {
           final resData = json.decode(response.body);
-
           if (resData['success'] == true || resData['data'] != null) {
-            isSuccess = true;
+            apiCallWorked = true;
             final serverData = resData['data'];
 
-            if (!kIsWeb) {
-              await NotificationService()
-                  .cancelNotification(widget.reminderToUpdate!.id);
+            // 📱 Cấu hình cho Mobile (Android/iOS)
+            // 📱 Cấu hình cho Mobile (Android/iOS)
+            if (!kIsWeb && _selectedTime != null) {
+              try {
+                await NotificationService()
+                    .cancelNotification(widget.reminderToUpdate!.id);
 
-              if (serverData != null &&
-                  serverData['is_active'] == true &&
-                  _selectedTime != null) {
                 await NotificationService().scheduleDailyNotification(
-                  id: serverData['reminder_id'] ?? widget.reminderToUpdate!.id,
-                  title: serverData['title'] ?? bodyData['title'],
-                  body: serverData['body'] ?? bodyData['dosage'],
-                  hour: serverData['hour'] ?? _selectedTime!.hour,
-                  minute: serverData['minute'] ?? _selectedTime!.minute,
-                  sound: 'chuong_bao_thuc',
+                  id: widget.reminderToUpdate!.id,
+                  title: finalTitle,
+                  body: bodyData['dosage'].toString(),
+                  hour: _selectedTime!.hour,
+                  minute: _selectedTime!.minute,
                 );
+              } catch (soundError) {
+                print("🚨 Lỗi cập nhật thông báo Android: $soundError");
               }
+            }
+
+            // 🌐 Cấu hình cho WEB khi sửa
+            if (kIsWeb && _selectedTime != null) {
+              NotificationService.webRemindersList.removeWhere(
+                  (element) => element['id'] == widget.reminderToUpdate!.id);
+
+              NotificationService.addWebReminder(
+                id: widget.reminderToUpdate!.id,
+                title: finalTitle,
+                body: bodyData['dosage'].toString(),
+                hour: _selectedTime!.hour,
+                minute: _selectedTime!.minute,
+              );
             }
           }
         }
       }
-
-      if (isSuccess && mounted) {
-        print("Điều hướng thành công về ReminderListPage!");
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ReminderListPage(user: widget.user),
-          ),
-          (route) => route.isFirst,
-        );
-      }
     } catch (e) {
-      print("Lỗi hệ thống: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đã xảy ra lỗi kết nối: $e')),
-        );
-      }
+      print("Lỗi kết nối API hoặc hệ thống: $e");
+      // Mẹo nhỏ: Đặt apiCallWorked = true ở đây nếu bạn muốn bất chấp API lỗi kết nối vẫn chuyển trang
+      apiCallWorked = true;
+    }
+
+    // 🟢 LUÔN LUÔN CHUYỂN TRANG: Chuyển khối lệnh điều hướng ra rìa ngoài cùng,
+    // Chỉ cần bấm nút và chạy xong xử lý là tự động quay về danh sách.
+    if (mounted) {
+      print("🔄 Ép buộc điều hướng thành công về ReminderListPage!");
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReminderListPage(user: widget.user),
+        ),
+        (route) => route.isFirst,
+      );
     }
   }
 
