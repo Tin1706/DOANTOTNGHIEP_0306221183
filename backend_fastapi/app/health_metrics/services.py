@@ -42,7 +42,7 @@ def _analyze_metrics(input_data: HealthMetricsInput):
         bp_warning = "Huyết áp bình thường"
 
     # 3. Đánh giá nhịp tim
-    if heart_rate > 80:
+    if heart_rate > 100:
         hr_warning = "Nhịp tim nhanh"
     elif 0 < heart_rate < 60:
         hr_warning = "Nhịp tim chậm"
