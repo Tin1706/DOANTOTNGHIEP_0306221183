@@ -48,12 +48,12 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
           _spots = [];
           _dateTimeLabels = [];
 
-          for (int i = 0; i < chartList.length; i++) {
-            var item = chartList[i];
+          for (int i = 0; i < chartList.length; i++) { // Vòng for lấy giá trị trong biểu đồ
+            var item = chartList[i]; 
             if (item['blood_sugar'] != null) {
-              double value = double.parse(item['blood_sugar'].toString());
-              _spots.add(FlSpot(i.toDouble(), value));
-              _dateTimeLabels.add(item['date'] ?? "");
+              double value = double.parse(item['blood_sugar'].toString()); // Lấy ra giá trị đường huyết
+              _spots.add(FlSpot(i.toDouble(), value)); // Lưu toạ độ vẽ đường biểu diễn X và Y
+              _dateTimeLabels.add(item['date'] ?? ""); // Lưu chuỗi ngày tháng
             }
           }
           _isLoading = false;
@@ -196,7 +196,7 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
                         ),
                         // 🩸 VÙNG HIGHLIGHT NẰM GIỮA (70 - 125)
                         HorizontalLine(
-                          y: 97.5, // (125 + 70) / 2
+                          y: 97.5, // (125 + 70) / 2, dùng để lấy ra vị trí giữa 125 và 70
                           strokeWidth:
                               50, // Độ dày lõi trong dải màu xanh để bao trọn từ 70 đến 125
                           color: Colors.green.withOpacity(0.12),
@@ -208,7 +208,7 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
-                            labelResolver: (line) => " VÙNG AN TOÀN",
+                            labelResolver: (line) => " VÙNG AN TOÀN", // Nhãn vùng an toàn
                           ),
                         ),
                       ],
@@ -224,11 +224,11 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
                               showTitles: true,
                               interval: 1,
                               getTitlesWidget: (v, m) {
-                                int index = v.toInt();
-                                String text = "";
+                                int index = v.toInt(); // lấy ra giá trị v
+                                String text = ""; // Đặt biến text
                                 if (index >= 0 &&
-                                    index < _dateTimeLabels.length) {
-                                  text = _dateTimeLabels[index];
+                                    index < _dateTimeLabels.length) { // Điều kiện if lấy ra ngày tháng
+                                  text = _dateTimeLabels[index]; // lấy ra giá trị ngày tháng
                                 }
                                 return Padding(
                                   padding: const EdgeInsets.only(top: 6),
@@ -245,7 +245,7 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
                               showTitles: true,
                               reservedSize: 35,
                               getTitlesWidget: (v, m) => Text(
-                                  v.toInt().toString(),
+                                  v.toInt().toString(), // lấy ra giá trị v và gán vào bằng toString
                                   style: const TextStyle(fontSize: 11)))),
                     ),
                     lineBarsData: [
