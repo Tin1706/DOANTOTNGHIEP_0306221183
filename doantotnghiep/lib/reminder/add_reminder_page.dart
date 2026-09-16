@@ -2,12 +2,10 @@ import 'dart:convert';
 import 'package:doantotnghiep/constant.dart';
 import 'package:doantotnghiep/graph/user_model.dart';
 import 'package:doantotnghiep/reminder/medication_category.dart';
-import 'package:doantotnghiep/reminder/notification_services.dart';
 import 'package:doantotnghiep/reminder/reminder_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:doantotnghiep/reminder/reminder_models.dart';
-import 'package:flutter/foundation.dart';
 
 class AddReminderPage extends StatefulWidget {
   final UserModel user;
@@ -94,64 +92,17 @@ class _AddReminderPageState extends State<AddReminderPage> {
       "sound_file": "chuong_bao_thuc.wav"
     };
 
-    // Tạo sẵn biến để lưu trạng thái phản hồi từ API gốc
-    bool apiCallWorked = false;
-
     try {
       http.Response response;
 
       if (widget.reminderToUpdate == null) {
         // --- LUỒNG 1: THÊM MỚI (POST) ---
+        // Gửi thông tin về Server. Backend sẽ lưu CSDL và chịu trách nhiệm Push Notification khi tới giờ
         response = await http.post(
           Uri.parse("$baseUrl/reminders/create"),
           headers: {"Content-Type": "application/json"},
           body: json.encode(bodyData),
         );
-
-        if (response.statusCode == 201 || response.statusCode == 200) {
-          final resData = json.decode(response.body);
-          if (resData['success'] == true) {
-            apiCallWorked = true;
-            final serverData = resData['data'];
-
-            // 📱 Cấu hình cho Mobile (Android/iOS)
-            // 📱 Cấu hình cho Mobile (Android/iOS)
-            if (!kIsWeb && _selectedTime != null) {
-              try {
-                // Nếu server không trả về reminder_id, tự tạo một ID int ngẫu nhiên để không bị crash
-                final int mobileId =
-                    (serverData != null ? serverData['reminder_id'] : null) ??
-                        (DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF);
-
-                await NotificationService().scheduleDailyNotification(
-                  id: mobileId,
-                  title: (serverData != null ? serverData['title'] : null) ??
-                      finalTitle,
-                  body: (serverData != null ? serverData['body'] : null) ??
-                      bodyData['dosage'].toString(),
-                  hour: _selectedTime!.hour,
-                  minute: _selectedTime!.minute,
-                );
-              } catch (soundError) {
-                print("🚨 Lỗi nạp thông báo Android: $soundError");
-              }
-            }
-
-            // 🌐 Cấu hình cho WEB
-            if (kIsWeb && _selectedTime != null) {
-              final int rId =
-                  (serverData != null ? serverData['reminder_id'] : null) ??
-                      DateTime.now().millisecondsSinceEpoch ~/ 1000;
-              NotificationService.addWebReminder(
-                id: rId,
-                title: finalTitle,
-                body: bodyData['dosage'].toString(),
-                hour: _selectedTime!.hour,
-                minute: _selectedTime!.minute,
-              );
-            }
-          }
-        }
       } else {
         // --- LUỒNG 2: CẬP NHẬT (PUT) ---
         response = await http.put(
@@ -159,58 +110,20 @@ class _AddReminderPageState extends State<AddReminderPage> {
           headers: {"Content-Type": "application/json"},
           body: json.encode(bodyData),
         );
+      }
 
-        if (response.statusCode == 200 || response.statusCode == 204) {
-          final resData = json.decode(response.body);
-          if (resData['success'] == true || resData['data'] != null) {
-            apiCallWorked = true;
-            final serverData = resData['data'];
-
-            // 📱 Cấu hình cho Mobile (Android/iOS)
-            // 📱 Cấu hình cho Mobile (Android/iOS)
-            if (!kIsWeb && _selectedTime != null) {
-              try {
-                await NotificationService()
-                    .cancelNotification(widget.reminderToUpdate!.id);
-
-                await NotificationService().scheduleDailyNotification(
-                  id: widget.reminderToUpdate!.id,
-                  title: finalTitle,
-                  body: bodyData['dosage'].toString(),
-                  hour: _selectedTime!.hour,
-                  minute: _selectedTime!.minute,
-                );
-              } catch (soundError) {
-                print("🚨 Lỗi cập nhật thông báo Android: $soundError");
-              }
-            }
-
-            // 🌐 Cấu hình cho WEB khi sửa
-            if (kIsWeb && _selectedTime != null) {
-              NotificationService.webRemindersList.removeWhere(
-                  (element) => element['id'] == widget.reminderToUpdate!.id);
-
-              NotificationService.addWebReminder(
-                id: widget.reminderToUpdate!.id,
-                title: finalTitle,
-                body: bodyData['dosage'].toString(),
-                hour: _selectedTime!.hour,
-                minute: _selectedTime!.minute,
-              );
-            }
-          }
-        }
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+        print("✅ Đã đồng bộ lịch hẹn lên Server thành công!");
+      } else {
+        print("⚠️ Server phản hồi mã lỗi: ${response.statusCode}");
       }
     } catch (e) {
-      print("Lỗi kết nối API hoặc hệ thống: $e");
-      // Mẹo nhỏ: Đặt apiCallWorked = true ở đây nếu bạn muốn bất chấp API lỗi kết nối vẫn chuyển trang
-      apiCallWorked = true;
+      print("🚨 Lỗi kết nối API: $e");
     }
 
-    // 🟢 LUÔN LUÔN CHUYỂN TRANG: Chuyển khối lệnh điều hướng ra rìa ngoài cùng,
-    // Chỉ cần bấm nút và chạy xong xử lý là tự động quay về danh sách.
+    // 🟢 Điều hướng quay trở về danh sách nhắc nhở
     if (mounted) {
-      print("🔄 Ép buộc điều hướng thành công về ReminderListPage!");
+      print("🔄 Điều hướng về ReminderListPage...");
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(

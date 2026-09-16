@@ -1,8 +1,8 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -25,7 +25,7 @@ android {
         applicationId = "com.example.doantotnghiep"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion // Đảm bảo minSdk từ 21 trở lên cho Firebase
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -44,7 +44,8 @@ android {
 flutter {
     source = "../.."
 }
+
 dependencies {
-    // SỬA CON SỐ Ở ĐÂY THÀNH 2.1.5
+    // 🟢 Thư viện Desugaring cho Java API
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

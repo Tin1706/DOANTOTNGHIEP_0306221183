@@ -123,7 +123,7 @@ class _HealthMetricsInputScreenState extends State<HealthMetricsInputScreen> {
         final evaluation = response.data['data'];
 
         // 🟢 4. KIỂM TRA ĐIỀU KIỆN ĐƯỜNG HUYẾT ĐỂ NỔ CHUÔNG + DIALOG NGUY HIỂM ĐỎ
-        if (bloodSugar > 180 || bloodSugar < 70) {
+        if (bloodSugar > 180 || bloodSugar < 80) {
           String alertMsg = bloodSugar > 180
               ? "Chỉ số đường huyết vừa nhập là ${bloodSugar} mg/dL. Bạn đang bị TĂNG ĐƯỜNG HUYẾT vượt ngưỡng an toàn!"
               : "Chỉ số đường huyết vừa nhập là ${bloodSugar} mg/dL. Bạn đang bị HẠ ĐƯỜNG HUYẾT cực kỳ nguy hiểm!";

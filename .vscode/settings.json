@@ -7,5 +7,6 @@
     "python.analysis.extraPaths": [
         "./backend_fastapi/app/auth"
     ],
-    "python-envs.defaultEnvManager": "ms-python.python:system"
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

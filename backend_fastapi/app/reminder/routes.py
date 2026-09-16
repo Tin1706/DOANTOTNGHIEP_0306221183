@@ -4,8 +4,86 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from . import services
 from . import schemas
+from pydantic import BaseModel
+import firebase_admin
+from firebase_admin import messaging
 
 router = APIRouter(prefix="/api/diabetes-medications", tags=["Diabetes Medications"])
+
+# --- SCHEMA PHỤ DÙNG CHO FCM TOKEN ---
+class FcmTokenUpdateRequest(BaseModel):
+    user_id: int
+    fcm_token: str
+
+class TestPushRequest(BaseModel):
+    fcm_token: str
+    title: str = "Thử nghiệm Thông Báo"
+    body: str = "Đây là thông báo Push thử nghiệm từ FastAPI!"
+
+
+# --- API MỚI 1: CẬP NHẬT FCM TOKEN TỪ APP FLUTTER ---
+@router.post(
+    "/update-fcm-token",
+    response_model=schemas.CommonApiResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Cập nhật FCM Device Token của người dùng"
+)
+def update_fcm_token(payload: FcmTokenUpdateRequest, db: Session = Depends(get_db)):
+    try:
+        # TODO: Nếu bạn muốn lưu fcm_token vào CSDL, gọi hàm service ở đây:
+        # services.update_user_fcm_token(db, user_id=payload.user_id, token=payload.fcm_token)
+        
+        print(f"🔑 [FCM Token] Đã nhận Token từ User ID {payload.user_id}: {payload.fcm_token[:20]}...")
+        
+        return schemas.CommonApiResponse(
+            success=True,
+            message="Cập nhật FCM Token thành công!",
+            data={"user_id": payload.user_id}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi khi cập nhật FCM Token: {str(e)}"
+        )
+
+
+# --- API MỚI 2: THỬ NGHIỆM GỬI PUSH NOTIFICATION NGAY LẬP TỨC ---
+@router.post(
+    "/test-push",
+    response_model=schemas.CommonApiResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gửi thử một thông báo Push đến thiết bị"
+)
+def test_push_notification(payload: TestPushRequest):
+    try:
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=payload.title,
+                body=payload.body,
+            ),
+            token=payload.fcm_token,
+            android=messaging.AndroidConfig(
+                priority='high',
+                notification=messaging.AndroidNotification(
+                    sound='default',
+                    channel_id='high_importance_channel'
+                )
+            )
+        )
+        response = messaging.send(message)
+        print(f"✅ [FCM Test Success] Message ID: {response}")
+        
+        return schemas.CommonApiResponse(
+            success=True,
+            message="Đã gửi Push Notification thành công!",
+            data={"message_id": response}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Lỗi gửi Push Notification: {str(e)}"
+        )
+
 
 # --- API 1: LẤY TOÀN BỘ DANH MỤC THUỐC ---
 @router.get(

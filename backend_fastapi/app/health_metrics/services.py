@@ -29,7 +29,7 @@ def _analyze_metrics(input_data: HealthMetricsInput):
     elif blood_sugar >= 126:
         blood_sugar_status = "Cao"
         blood_sugar_warning = "Cảnh báo nguy cơ Tiểu đường!"
-    elif 0 < blood_sugar <= 69: 
+    elif 0 < blood_sugar <= 79: 
         blood_sugar_status = "Thấp"
         blood_sugar_warning = "Nguy cơ hạ đường huyết, cần uống nước đường!"
 

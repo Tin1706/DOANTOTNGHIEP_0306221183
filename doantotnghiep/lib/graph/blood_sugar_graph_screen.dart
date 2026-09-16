@@ -117,7 +117,7 @@ class _BloodSugarGraphScreenState extends State<BloodSugarGraphScreen> {
                       ),
                       Expanded(
                         child: _buildChartContainer("Đường huyết (mg/dL)",
-                            _spots, Colors.orange, 50, 210),
+                            _spots, Colors.orange, 50, 300),
                       ),
                     ],
                   ),
